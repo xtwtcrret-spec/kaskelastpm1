@@ -12,7 +12,8 @@ import {
   PlusCircle, 
   ArrowRight,
   BrainCircuit,
-  Bot
+  Bot,
+  Lock
 } from 'lucide-react';
 
 interface AIAuditViewProps {
@@ -20,6 +21,8 @@ interface AIAuditViewProps {
   members: Member[];
   settings: OrganizationSettings;
   onAddTransaction: (tx: Omit<Transaction, 'id'>) => void;
+  isAdmin?: boolean;
+  onOpenAdminLogin?: () => void;
 }
 
 export const AIAuditView: React.FC<AIAuditViewProps> = ({
@@ -27,6 +30,8 @@ export const AIAuditView: React.FC<AIAuditViewProps> = ({
   members,
   settings,
   onAddTransaction,
+  isAdmin = false,
+  onOpenAdminLogin,
 }) => {
   const [loadingAudit, setLoadingAudit] = useState(false);
   const [auditReport, setAuditReport] = useState<AIAuditReport | null>(null);
@@ -162,7 +167,30 @@ export const AIAuditView: React.FC<AIAuditViewProps> = ({
 
   return (
     <div className="space-y-8 pb-12">
-      
+
+      {!isAdmin && (
+        <div className="bg-slate-900/80 backdrop-blur-xl p-10 rounded-3xl border border-purple-500/30 shadow-xl text-center space-y-4">
+          <div className="w-14 h-14 rounded-2xl bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center justify-center mx-auto">
+            <Lock className="w-7 h-7" />
+          </div>
+          <div>
+            <h3 className="text-lg font-bold text-white">Fitur Khusus Admin/Bendahara</h3>
+            <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+              AI Audit & Smart Parser bisa langsung menambahkan transaksi ke buku kas, jadi cuma admin yang bisa akses fitur ini biar data tetap aman dan nggak disalahgunakan.
+            </p>
+          </div>
+          <button
+            onClick={onOpenAdminLogin}
+            className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-5 py-2.5 rounded-2xl transition inline-flex items-center gap-1.5 cursor-pointer"
+          >
+            <Lock className="w-4 h-4" />
+            <span>Login Admin</span>
+          </button>
+        </div>
+      )}
+
+      {isAdmin && (
+      <>
       {/* Header Banner */}
       <div className="bg-gradient-to-r from-purple-900/60 via-indigo-900/50 to-slate-900/80 backdrop-blur-2xl text-white p-6 sm:p-8 rounded-3xl shadow-2xl border border-purple-500/30 relative overflow-hidden">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
@@ -435,6 +463,9 @@ export const AIAuditView: React.FC<AIAuditViewProps> = ({
         )}
 
       </div>
+
+      </>
+      )}
 
     </div>
   );

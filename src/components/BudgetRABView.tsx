@@ -24,6 +24,7 @@ export const BudgetRABView: React.FC<BudgetRABViewProps> = ({
   const [category, setCategory] = useState('Konsumsi & Acara');
   const [allocatedAmount, setAllocatedAmount] = useState<number>(1000000);
   const [period, setPeriod] = useState('Agustus 2026');
+  const [formError, setFormError] = useState<string | null>(null);
 
   // Calculate actual spending per category (Verified expenses only)
   const actualSpentMap: Record<string, number> = {};
@@ -35,12 +36,25 @@ export const BudgetRABView: React.FC<BudgetRABViewProps> = ({
 
   const handleSaveBudget = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!category || allocatedAmount <= 0) return;
 
+    if (!allocatedAmount || allocatedAmount <= 0) {
+      setFormError('Plafon anggaran harus lebih dari Rp 0.');
+      return;
+    }
+    if (allocatedAmount > 500000000) {
+      setFormError('Plafon kelihatannya kebesaran, cek lagi angkanya.');
+      return;
+    }
+    if (!period.trim()) {
+      setFormError('Periode wajib diisi (misal: Agustus 2026).');
+      return;
+    }
+
+    setFormError(null);
     onAddBudget({
       category,
       allocatedAmount,
-      period,
+      period: period.trim(),
     });
 
     setShowModal(false);
@@ -63,7 +77,7 @@ export const BudgetRABView: React.FC<BudgetRABViewProps> = ({
 
         {isAdmin ? (
           <button
-            onClick={() => setShowModal(true)}
+            onClick={() => { setFormError(null); setShowModal(true); }}
             className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black px-4 py-2.5 rounded-2xl transition flex items-center gap-1.5 shadow-lg shadow-amber-500/20 cursor-pointer"
           >
             <Plus className="w-4 h-4 text-slate-950" />
@@ -176,6 +190,11 @@ export const BudgetRABView: React.FC<BudgetRABViewProps> = ({
             <h3 className="text-lg font-bold text-white">Tambah Target Anggaran RAB</h3>
 
             <form onSubmit={handleSaveBudget} className="space-y-4 text-xs">
+              {formError && (
+                <div className="bg-rose-500/15 border border-rose-500/30 text-rose-300 text-xs p-3 rounded-2xl">
+                  {formError}
+                </div>
+              )}
               <div>
                 <label className="block text-slate-300 font-semibold mb-1.5">Kategori</label>
                 <select
@@ -217,7 +236,7 @@ export const BudgetRABView: React.FC<BudgetRABViewProps> = ({
               <div className="flex justify-end gap-2 pt-2">
                 <button
                   type="button"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => { setFormError(null); setShowModal(false); }}
                   className="px-4 py-2 text-slate-400 font-semibold hover:text-white cursor-pointer"
                 >
                   Batal

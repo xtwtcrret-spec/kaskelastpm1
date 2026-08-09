@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Member, OrganizationSettings, Transaction } from '../types';
 import { formatRupiah } from '../utils/formatters';
+import { computeMemberDuesLedger } from '../utils/dues';
 import { 
   Users, 
   UserPlus, 
@@ -86,6 +87,10 @@ export const MembersDuesView: React.FC<MembersDuesViewProps> = ({
       .filter((t) => t.verified)
       .reduce((sum, t) => sum + t.amount, 0);
   };
+
+  // Ledger lengkap (termasuk carry-over kelebihan bayar antar bulan) per siswa
+  const getMemberLedger = (member: Member) =>
+    computeMemberDuesLedger(member.id, transactions, members, settings.monthlyDuesStandard).detail;
 
   const filteredMembers = members.filter((m) =>
     m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -287,8 +292,10 @@ export const MembersDuesView: React.FC<MembersDuesViewProps> = ({
                   const isPaidInActiveMonth = member.duesPaidMonths.includes(activeMonth);
                   const isExpanded = expandedMemberId === member.id;
                   const monthTransactions = getMemberMonthTransactions(member, activeMonth);
-                  const paidTotal = getMemberMonthPaidTotal(member, activeMonth);
-                  const remaining = Math.max(settings.monthlyDuesStandard - paidTotal, 0);
+                  const ledgerEntry = getMemberLedger(member)[activeMonth];
+                  const paidTotal = ledgerEntry?.totalAvailable ?? 0;
+                  const carryIn = ledgerEntry?.carryIn ?? 0;
+                  const remaining = ledgerEntry?.remaining ?? Math.max(settings.monthlyDuesStandard - paidTotal, 0);
 
                   return (
                     <React.Fragment key={member.id}>
@@ -422,8 +429,13 @@ export const MembersDuesView: React.FC<MembersDuesViewProps> = ({
                               </h4>
                               <div className="flex items-center gap-3 text-[11px]">
                                 <span className="text-slate-400">
-                                  Sudah Dibayar (terverifikasi): <strong className="text-emerald-400 font-mono-tech">{formatRupiah(paidTotal)}</strong>
+                                  Total Tersedia: <strong className="text-emerald-400 font-mono-tech">{formatRupiah(paidTotal)}</strong>
                                 </span>
+                                {carryIn > 0 && (
+                                  <span className="text-cyan-400 font-bold bg-cyan-500/15 px-2 py-1 rounded-md border border-cyan-500/30" title="Kelebihan bayar dari bulan sebelumnya yang otomatis dipakai buat nutup bulan ini">
+                                    + {formatRupiah(carryIn)} carry dari bulan lalu
+                                  </span>
+                                )}
                                 {remaining > 0 ? (
                                   <span className="text-rose-400 font-bold bg-rose-500/15 px-2 py-1 rounded-md border border-rose-500/30">
                                     Kurang: {formatRupiah(remaining)}

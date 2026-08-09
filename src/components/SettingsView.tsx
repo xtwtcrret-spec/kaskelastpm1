@@ -288,13 +288,17 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           </div>
 
           <div className="flex items-center gap-3">
-            <button
-              onClick={onExportBackup}
-              className="bg-white/10 hover:bg-white/15 text-white border border-white/10 text-xs font-semibold px-4 py-2.5 rounded-2xl transition flex items-center gap-1.5 cursor-pointer"
-            >
-              <Download className="w-4 h-4" />
-              <span>Export JSON Backup</span>
-            </button>
+            {isAdmin ? (
+              <button
+                onClick={onExportBackup}
+                className="bg-white/10 hover:bg-white/15 text-white border border-white/10 text-xs font-semibold px-4 py-2.5 rounded-2xl transition flex items-center gap-1.5 cursor-pointer"
+              >
+                <Download className="w-4 h-4" />
+                <span>Export JSON Backup</span>
+              </button>
+            ) : (
+              <span className="text-slate-500 italic">Login sebagai Admin untuk export/import data.</span>
+            )}
 
             {isAdmin && (
               <label className="bg-white/10 hover:bg-white/15 text-white border border-white/10 text-xs font-semibold px-4 py-2.5 rounded-2xl transition flex items-center gap-1.5 cursor-pointer">

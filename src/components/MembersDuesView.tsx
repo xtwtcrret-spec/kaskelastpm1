@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Member, OrganizationSettings } from '../types';
+import { Member, OrganizationSettings, Transaction } from '../types';
 import { formatRupiah } from '../utils/formatters';
 import { 
   Users, 
@@ -15,12 +15,14 @@ import {
   AlertCircle,
   HelpCircle,
   ListPlus,
-  Lock
+  Lock,
+  Receipt
 } from 'lucide-react';
 import { BatchMemberModal } from './modals/BatchMemberModal';
 
 interface MembersDuesViewProps {
   members: Member[];
+  transactions: Transaction[];
   settings: OrganizationSettings;
   isAdmin?: boolean;
   onOpenAdminLogin?: () => void;
@@ -49,6 +51,7 @@ const MONTHS_LIST = [
 
 export const MembersDuesView: React.FC<MembersDuesViewProps> = ({
   members,
+  transactions,
   settings,
   isAdmin = false,
   onOpenAdminLogin,
@@ -62,6 +65,27 @@ export const MembersDuesView: React.FC<MembersDuesViewProps> = ({
   const [searchTerm, setSearchTerm] = useState('');
   const [activeMonth, setActiveMonth] = useState('2026-08');
   const [isBatchModalOpen, setIsBatchModalOpen] = useState(false);
+  const [expandedMemberId, setExpandedMemberId] = useState<string | null>(null);
+
+  // Cari semua transaksi milik seorang siswa untuk bulan tertentu
+  // (dicocokkan lewat memberId, atau fallback lewat nama & keterangan "Bulan YYYY-MM")
+  const getMemberMonthTransactions = (member: Member, monthKey: string): Transaction[] => {
+    return transactions.filter((t) => {
+      const matchMember = t.memberId
+        ? t.memberId === member.id
+        : t.contributor.toLowerCase().trim() === member.name.toLowerCase().trim();
+      if (!matchMember) return false;
+
+      const txMonth = t.forMonth || (t.description.match(/Bulan\s+(\d{4}-\d{2})/i)?.[1] ?? null);
+      return txMonth === monthKey && t.type === 'pemasukan';
+    });
+  };
+
+  const getMemberMonthPaidTotal = (member: Member, monthKey: string): number => {
+    return getMemberMonthTransactions(member, monthKey)
+      .filter((t) => t.verified)
+      .reduce((sum, t) => sum + t.amount, 0);
+  };
 
   const filteredMembers = members.filter((m) =>
     m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -261,9 +285,14 @@ export const MembersDuesView: React.FC<MembersDuesViewProps> = ({
               <tbody className="divide-y divide-white/5">
                 {filteredMembers.map((member) => {
                   const isPaidInActiveMonth = member.duesPaidMonths.includes(activeMonth);
+                  const isExpanded = expandedMemberId === member.id;
+                  const monthTransactions = getMemberMonthTransactions(member, activeMonth);
+                  const paidTotal = getMemberMonthPaidTotal(member, activeMonth);
+                  const remaining = Math.max(settings.monthlyDuesStandard - paidTotal, 0);
 
                   return (
-                    <tr key={member.id} className="hover:bg-white/10 transition">
+                    <React.Fragment key={member.id}>
+                    <tr className="hover:bg-white/10 transition">
                       
                       {/* Member Profile */}
                       <td className="py-3 px-3 font-semibold text-white">
@@ -320,9 +349,21 @@ export const MembersDuesView: React.FC<MembersDuesViewProps> = ({
                         );
                       })}
 
-                      {/* Actions: WA Reminder & Edit */}
+                      {/* Actions: Detail, WA Reminder & Edit */}
                       <td className="py-3 px-3 text-center whitespace-nowrap">
                         <div className="flex items-center justify-center gap-1.5">
+                          <button
+                            onClick={() => setExpandedMemberId(isExpanded ? null : member.id)}
+                            className={`p-1.5 rounded-lg transition cursor-pointer border ${
+                              isExpanded
+                                ? 'bg-indigo-500/30 text-indigo-300 border-indigo-500/50'
+                                : 'bg-white/5 text-slate-400 border-white/10 hover:bg-white/10 hover:text-white'
+                            }`}
+                            title="Lihat detail transaksi & kekurangan bulan ini"
+                          >
+                            <Receipt className="w-3.5 h-3.5" />
+                          </button>
+
                           {!isPaidInActiveMonth ? (
                             <button
                               onClick={() => onOpenWhatsAppReminder(member)}
@@ -369,6 +410,63 @@ export const MembersDuesView: React.FC<MembersDuesViewProps> = ({
                       </td>
 
                     </tr>
+
+                    {isExpanded && (
+                      <tr className="bg-slate-950/60">
+                        <td colSpan={MONTHS_LIST.length + 3} className="p-4">
+                          <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3">
+                            <div className="flex flex-wrap items-center justify-between gap-2">
+                              <h4 className="text-xs font-bold text-white flex items-center gap-1.5">
+                                <Receipt className="w-3.5 h-3.5 text-indigo-400" />
+                                Riwayat Transaksi {member.name} — Bulan {MONTHS_LIST.find((m) => m.key === activeMonth)?.label} {activeMonth.split('-')[0]}
+                              </h4>
+                              <div className="flex items-center gap-3 text-[11px]">
+                                <span className="text-slate-400">
+                                  Sudah Dibayar (terverifikasi): <strong className="text-emerald-400 font-mono-tech">{formatRupiah(paidTotal)}</strong>
+                                </span>
+                                {remaining > 0 ? (
+                                  <span className="text-rose-400 font-bold bg-rose-500/15 px-2 py-1 rounded-md border border-rose-500/30">
+                                    Kurang: {formatRupiah(remaining)}
+                                  </span>
+                                ) : (
+                                  <span className="text-emerald-400 font-bold bg-emerald-500/15 px-2 py-1 rounded-md border border-emerald-500/30">
+                                    ✓ Sudah Cukup / Lunas
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            {monthTransactions.length === 0 ? (
+                              <p className="text-[11px] text-slate-500 italic">Belum ada transaksi tercatat untuk bulan ini.</p>
+                            ) : (
+                              <div className="space-y-1.5">
+                                {monthTransactions.map((t) => (
+                                  <div
+                                    key={t.id}
+                                    className="flex items-center justify-between text-[11px] bg-white/5 rounded-xl px-3 py-2 border border-white/5"
+                                  >
+                                    <div className="flex items-center gap-2">
+                                      <span className={`w-2 h-2 rounded-full ${t.verified ? 'bg-emerald-400' : 'bg-amber-400'}`} />
+                                      <span className="text-slate-300">{t.description}</span>
+                                      <span className="text-slate-500">({t.date})</span>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                      <span className={`font-mono-tech font-bold ${t.verified ? 'text-emerald-400' : 'text-amber-400'}`}>
+                                        {formatRupiah(t.amount)}
+                                      </span>
+                                      <span className="text-[10px] text-slate-500">
+                                        {t.verified ? 'Terverifikasi' : 'Menunggu Verifikasi'}
+                                      </span>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )}
+                    </React.Fragment>
                   );
                 })}
               </tbody>

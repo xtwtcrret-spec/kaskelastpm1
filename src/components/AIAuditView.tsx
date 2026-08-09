@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Transaction, Member, OrganizationSettings, AIAuditReport, ParsedAINote } from '../types';
 import { formatRupiah } from '../utils/formatters';
 import { 
@@ -13,8 +13,12 @@ import {
   ArrowRight,
   BrainCircuit,
   Bot,
-  Lock
+  Lock,
+  Clock
 } from 'lucide-react';
+
+const AUDIT_COOLDOWN_MS = 2 * 60 * 1000; // 2 menit, biar kuota Gemini API nggak boros gara-gara keklik berkali-kali
+const AUDIT_COOLDOWN_STORAGE_KEY = 'kaskita_last_ai_audit_run_at';
 
 interface AIAuditViewProps {
   transactions: Transaction[];
@@ -36,6 +40,33 @@ export const AIAuditView: React.FC<AIAuditViewProps> = ({
   const [loadingAudit, setLoadingAudit] = useState(false);
   const [auditReport, setAuditReport] = useState<AIAuditReport | null>(null);
   const [auditError, setAuditError] = useState<string | null>(null);
+  const [cooldownRemaining, setCooldownRemaining] = useState(0); // dalam detik
+  const cooldownIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  // Cek & jalankan countdown cooldown setiap kali komponen dibuka
+  useEffect(() => {
+    const updateRemaining = () => {
+      const lastRun = Number(localStorage.getItem(AUDIT_COOLDOWN_STORAGE_KEY) || 0);
+      const elapsed = Date.now() - lastRun;
+      const remainingMs = AUDIT_COOLDOWN_MS - elapsed;
+      if (remainingMs > 0) {
+        setCooldownRemaining(Math.ceil(remainingMs / 1000));
+      } else {
+        setCooldownRemaining(0);
+        if (cooldownIntervalRef.current) {
+          clearInterval(cooldownIntervalRef.current);
+          cooldownIntervalRef.current = null;
+        }
+      }
+    };
+
+    updateRemaining();
+    cooldownIntervalRef.current = setInterval(updateRemaining, 1000);
+
+    return () => {
+      if (cooldownIntervalRef.current) clearInterval(cooldownIntervalRef.current);
+    };
+  }, []);
 
   // Smart Note Parser State
   const [rawNote, setRawNote] = useState('');
@@ -76,6 +107,8 @@ export const AIAuditView: React.FC<AIAuditViewProps> = ({
     });
 
   const handleRunAudit = async () => {
+    if (cooldownRemaining > 0) return;
+
     setLoadingAudit(true);
     setAuditError(null);
 
@@ -106,6 +139,9 @@ export const AIAuditView: React.FC<AIAuditViewProps> = ({
           ...resData.data,
           generatedAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
         });
+        // Catat waktu run terakhir & mulai cooldown
+        localStorage.setItem(AUDIT_COOLDOWN_STORAGE_KEY, String(Date.now()));
+        setCooldownRemaining(Math.ceil(AUDIT_COOLDOWN_MS / 1000));
       } else {
         throw new Error(resData.error || 'Gagal menghasilkan audit kas.');
       }
@@ -168,30 +204,7 @@ export const AIAuditView: React.FC<AIAuditViewProps> = ({
   return (
     <div className="space-y-8 pb-12">
 
-      {!isAdmin && (
-        <div className="bg-slate-900/80 backdrop-blur-xl p-10 rounded-3xl border border-purple-500/30 shadow-xl text-center space-y-4">
-          <div className="w-14 h-14 rounded-2xl bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center justify-center mx-auto">
-            <Lock className="w-7 h-7" />
-          </div>
-          <div>
-            <h3 className="text-lg font-bold text-white">Fitur Khusus Admin/Bendahara</h3>
-            <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
-              AI Audit & Smart Parser bisa langsung menambahkan transaksi ke buku kas, jadi cuma admin yang bisa akses fitur ini biar data tetap aman dan nggak disalahgunakan.
-            </p>
-          </div>
-          <button
-            onClick={onOpenAdminLogin}
-            className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-5 py-2.5 rounded-2xl transition inline-flex items-center gap-1.5 cursor-pointer"
-          >
-            <Lock className="w-4 h-4" />
-            <span>Login Admin</span>
-          </button>
-        </div>
-      )}
-
-      {isAdmin && (
-      <>
-      {/* Header Banner */}
+      {/* Header Banner & Audit AI — bisa diakses SEMUA orang (siswa & admin) */}
       <div className="bg-gradient-to-r from-purple-900/60 via-indigo-900/50 to-slate-900/80 backdrop-blur-2xl text-white p-6 sm:p-8 rounded-3xl shadow-2xl border border-purple-500/30 relative overflow-hidden">
         <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 relative z-10">
           <div className="space-y-2 max-w-2xl">
@@ -208,13 +221,19 @@ export const AIAuditView: React.FC<AIAuditViewProps> = ({
 
           <button
             onClick={handleRunAudit}
-            disabled={loadingAudit}
-            className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white font-bold text-sm px-6 py-3.5 rounded-2xl shadow-lg shadow-purple-500/25 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 active:scale-95 flex-shrink-0"
+            disabled={loadingAudit || cooldownRemaining > 0}
+            className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white font-bold text-sm px-6 py-3.5 rounded-2xl shadow-lg shadow-purple-500/25 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 flex-shrink-0"
+            title={cooldownRemaining > 0 ? `Tunggu ${cooldownRemaining} detik lagi biar kuota AI nggak boros` : undefined}
           >
             {loadingAudit ? (
               <>
                 <RefreshCw className="w-5 h-5 animate-spin" />
                 <span>Memproses Audit AI...</span>
+              </>
+            ) : cooldownRemaining > 0 ? (
+              <>
+                <Clock className="w-5 h-5" />
+                <span>Coba lagi {Math.floor(cooldownRemaining / 60)}:{String(cooldownRemaining % 60).padStart(2, '0')}</span>
               </>
             ) : (
               <>
@@ -340,7 +359,8 @@ export const AIAuditView: React.FC<AIAuditViewProps> = ({
         </div>
       )}
 
-      {/* SECTION 2: AI Smart Note Parser */}
+      {/* SECTION 2: AI Smart Note Parser — khusus admin, karena bisa langsung nambahin transaksi ke buku kas */}
+      {isAdmin ? (
       <div className="bg-white/5 backdrop-blur-xl rounded-3xl border border-white/10 shadow-xl p-6 space-y-4">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-2xl bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center justify-center">
@@ -463,8 +483,25 @@ export const AIAuditView: React.FC<AIAuditViewProps> = ({
         )}
 
       </div>
-
-      </>
+      ) : (
+        <div className="bg-white/5 backdrop-blur-xl p-8 rounded-3xl border border-white/10 shadow-xl text-center space-y-3">
+          <div className="w-12 h-12 rounded-2xl bg-purple-500/20 text-purple-300 border border-purple-500/30 flex items-center justify-center mx-auto">
+            <Lock className="w-6 h-6" />
+          </div>
+          <div>
+            <h3 className="text-sm font-bold text-white">AI Smart Parser Khusus Admin/Bendahara</h3>
+            <p className="text-xs text-slate-400 mt-1 max-w-md mx-auto">
+              Fitur ini bisa langsung menambahkan transaksi ke buku kas, jadi cuma admin yang bisa akses biar data tetap aman.
+            </p>
+          </div>
+          <button
+            onClick={onOpenAdminLogin}
+            className="bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold px-4 py-2 rounded-2xl transition inline-flex items-center gap-1.5 cursor-pointer"
+          >
+            <Lock className="w-3.5 h-3.5" />
+            <span>Login Admin</span>
+          </button>
+        </div>
       )}
 
     </div>

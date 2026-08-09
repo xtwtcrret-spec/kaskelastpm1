@@ -53,7 +53,6 @@ import {
   Users, 
   Bot, 
   Target, 
-  QrCode, 
   Settings as SettingsIcon,
   Sparkles,
   ShieldCheck,
@@ -488,7 +487,6 @@ export default function App() {
     { id: 'members', label: 'Iuran Anggota', icon: Users },
     { id: 'ai-audit', label: 'AI Audit & Smart Parser', icon: Bot, badge: 'Gemini' },
     { id: 'rab', label: 'RAB Anggaran', icon: Target },
-    { id: 'payment', label: 'Info QRIS & Transfer', icon: QrCode },
     { id: 'audit-log', label: 'Riwayat Perubahan', icon: History },
     { id: 'settings', label: 'Pengaturan', icon: SettingsIcon },
   ];

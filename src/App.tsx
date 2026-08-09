@@ -37,7 +37,6 @@ import { AIAuditView } from './components/AIAuditView';
 import { BudgetRABView } from './components/BudgetRABView';
 import { PaymentPortalView } from './components/PaymentPortalView';
 import { SettingsView } from './components/SettingsView';
-import { LeaderboardView } from './components/LeaderboardView';
 import { AuditLogView } from './components/AuditLogView';
 
 import { TransactionModal } from './components/modals/TransactionModal';
@@ -58,7 +57,6 @@ import {
   Settings as SettingsIcon,
   Sparkles,
   ShieldCheck,
-  Trophy,
   History
 } from 'lucide-react';
 
@@ -488,7 +486,6 @@ export default function App() {
     { id: 'dashboard', label: 'Dashboard Utama', icon: LayoutDashboard },
     { id: 'transactions', label: 'Buku Kas & Transaksi', icon: BookOpen },
     { id: 'members', label: 'Iuran Anggota', icon: Users },
-    { id: 'leaderboard', label: 'Papan Peringkat', icon: Trophy },
     { id: 'ai-audit', label: 'AI Audit & Smart Parser', icon: Bot, badge: 'Gemini' },
     { id: 'rab', label: 'RAB Anggaran', icon: Target },
     { id: 'payment', label: 'Info QRIS & Transfer', icon: QrCode },
@@ -655,10 +652,6 @@ export default function App() {
                 onOpenWhatsAppReminder={(m) => setSelectedWaMember(m)}
                 onBatchAddMembers={handleBatchAddMembers}
               />
-            )}
-
-            {activeTab === 'leaderboard' && (
-              <LeaderboardView members={members} transactions={transactions} />
             )}
 
             {activeTab === 'ai-audit' && (

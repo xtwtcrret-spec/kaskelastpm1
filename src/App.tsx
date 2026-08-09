@@ -206,6 +206,15 @@ export default function App() {
 
   // Transaction Handlers
   const handleSaveTransaction = (txData: Omit<Transaction, 'id'>) => {
+    // Pengaman tambahan (selain di sisi tampilan): siswa biasa (non-admin) CUMA boleh
+    // kirim transaksi lewat alur legit (StudentPaymentModal, yang selalu verified:false
+    // & bukan edit). Nggak boleh langsung submit sebagai "Terverifikasi" atau edit transaksi lama,
+    // walau ada tombol lain yang kelewatan belum dikunci UI-nya.
+    if (!isAdmin && (editingTx || txData.verified)) {
+      console.warn('Ditolak: hanya admin yang boleh menyimpan transaksi terverifikasi / mengedit transaksi.');
+      return;
+    }
+
     if (editingTx) {
       setTransactions((prev) =>
         prev.map((t) => (t.id === editingTx.id ? { ...txData, id: editingTx.id } : t))

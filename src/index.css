@@ -76,3 +76,57 @@
 .animate-pulse-glow {
   animation: pulseGlow 3s ease-in-out infinite;
 }
+
+/* Print Styles — dipakai saat klik "Cetak / Simpan PDF".
+   Sembunyiin navigasi/tombol, bikin background putih & teks hitam biar hemat tinta dan rapi. */
+@media print {
+  body {
+    background-color: #ffffff !important;
+    color: #0f172a !important;
+  }
+
+  .no-print,
+  header,
+  nav {
+    display: none !important;
+  }
+
+  main {
+    padding: 0 !important;
+    max-width: 100% !important;
+  }
+
+  * {
+    box-shadow: none !important;
+    background-image: none !important;
+    backdrop-filter: none !important;
+    animation: none !important;
+  }
+
+  .bg-slate-900\/80,
+  .bg-slate-900\/90,
+  .bg-white\/5,
+  .bg-white\/10 {
+    background-color: #ffffff !important;
+    border-color: #cbd5e1 !important;
+  }
+
+  .text-white,
+  .text-slate-200,
+  .text-slate-300 {
+    color: #0f172a !important;
+  }
+
+  .text-slate-400,
+  .text-slate-500 {
+    color: #475569 !important;
+  }
+
+  table {
+    width: 100% !important;
+  }
+
+  th, td {
+    border: 1px solid #cbd5e1 !important;
+  }
+}

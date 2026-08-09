@@ -249,24 +249,52 @@ export default function App() {
         if (match) targetMonth = match[1];
       }
 
+      const nextTransactions = prev.map((t) => (t.id === id ? { ...t, verified: nextVerified } : t));
+
       if (targetMemberId && targetMonth) {
+        // Hitung TOTAL semua transaksi terverifikasi milik anggota ini untuk bulan ini
+        // (bukan cuma cek "ada transaksi atau nggak"), supaya bayar sebagian
+        // (misal Rp 2.000 dari target Rp 8.000) TIDAK langsung dianggap Lunas.
+        const resolveMemberId = (t: Transaction): string | undefined => {
+          if (t.memberId) return t.memberId;
+          const found = members.find(
+            (m) => m.name.toLowerCase().trim() === t.contributor.toLowerCase().trim()
+          );
+          return found?.id;
+        };
+        const resolveMonth = (t: Transaction): string | undefined => {
+          if (t.forMonth) return t.forMonth;
+          const match = t.description.match(/Bulan\s+(\d{4}-\d{2})/i);
+          return match ? match[1] : undefined;
+        };
+
+        const totalPaidForMonth = nextTransactions
+          .filter(
+            (t) =>
+              t.verified &&
+              resolveMemberId(t) === targetMemberId &&
+              resolveMonth(t) === targetMonth
+          )
+          .reduce((sum, t) => sum + t.amount, 0);
+
+        const shouldBePaid = totalPaidForMonth >= settings.monthlyDuesStandard;
+
         setMembers((mPrev) =>
           mPrev.map((m) => {
             if (m.id !== targetMemberId) return m;
-            let updatedMonths = [...m.duesPaidMonths];
-            if (nextVerified) {
-              if (!updatedMonths.includes(targetMonth!)) {
-                updatedMonths.push(targetMonth!);
-              }
-            } else {
-              updatedMonths = updatedMonths.filter((k) => k !== targetMonth);
+            const alreadyMarked = m.duesPaidMonths.includes(targetMonth!);
+            let updatedMonths = m.duesPaidMonths;
+            if (shouldBePaid && !alreadyMarked) {
+              updatedMonths = [...m.duesPaidMonths, targetMonth!];
+            } else if (!shouldBePaid && alreadyMarked) {
+              updatedMonths = m.duesPaidMonths.filter((k) => k !== targetMonth);
             }
             return { ...m, duesPaidMonths: updatedMonths };
           })
         );
       }
 
-      return prev.map((t) => (t.id === id ? { ...t, verified: nextVerified } : t));
+      return nextTransactions;
     });
   };
 

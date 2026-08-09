@@ -19,6 +19,7 @@ export const MemberModal: React.FC<MemberModalProps> = ({
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState('Anggota');
   const [avatar, setAvatar] = useState('');
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (initialMember) {
@@ -32,18 +33,40 @@ export const MemberModal: React.FC<MemberModalProps> = ({
       setRole('Anggota');
       setAvatar('https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80');
     }
+    setErrors({});
   }, [initialMember, isOpen]);
 
   if (!isOpen) return null;
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+
+    const newErrors: Record<string, string> = {};
+
+    if (!name.trim()) {
+      newErrors.name = 'Nama wajib diisi.';
+    } else if (name.trim().length < 3) {
+      newErrors.name = 'Nama kelihatannya terlalu pendek, cek lagi.';
+    }
+
+    const cleanPhone = phone.trim().replace(/[\s-]/g, '');
+    if (!cleanPhone) {
+      newErrors.phone = 'Nomor WhatsApp wajib diisi.';
+    } else if (!/^628\d{7,12}$/.test(cleanPhone)) {
+      newErrors.phone = 'Format harus diawali 628, cuma angka, contoh: 628123456789.';
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
 
     onSave(
       {
-        name,
-        phone,
+        name: name.trim(),
+        phone: cleanPhone,
         role,
         avatar: avatar || 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=120&auto=format&fit=crop&q=80',
         monthlyDuesAmount: 25000,
@@ -76,10 +99,13 @@ export const MemberModal: React.FC<MemberModalProps> = ({
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
-              className="w-full p-3 rounded-2xl border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white/10 transition-all"
+              className={`w-full p-3 rounded-2xl border bg-white/5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:bg-white/10 transition-all ${
+                errors.name ? 'border-rose-500/60 focus:ring-rose-500' : 'border-white/10 focus:ring-indigo-500'
+              }`}
               placeholder="e.g. Budi Santoso"
               required
             />
+            {errors.name && <p className="text-rose-400 text-[11px] mt-1">{errors.name}</p>}
           </div>
 
           <div>
@@ -88,10 +114,13 @@ export const MemberModal: React.FC<MemberModalProps> = ({
               type="text"
               value={phone}
               onChange={(e) => setPhone(e.target.value)}
-              className="w-full p-3 rounded-2xl border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:bg-white/10 transition-all"
+              className={`w-full p-3 rounded-2xl border bg-white/5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:bg-white/10 transition-all ${
+                errors.phone ? 'border-rose-500/60 focus:ring-rose-500' : 'border-white/10 focus:ring-indigo-500'
+              }`}
               placeholder="628123456789"
               required
             />
+            {errors.phone && <p className="text-rose-400 text-[11px] mt-1">{errors.phone}</p>}
           </div>
 
           <div>

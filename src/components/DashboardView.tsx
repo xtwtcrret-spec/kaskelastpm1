@@ -140,6 +140,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     value,
   }));
 
+  // Progress kelunasan iuran bulan berjalan (buat progress bar di dashboard)
+  const paidThisMonthCount = members.length - unpaidMembers.length;
+  const duesProgressPct = members.length > 0 ? Math.round((paidThisMonthCount / members.length) * 100) : 0;
+
   // Cash Health Status
   let healthBadge = { text: 'Kas Permesinan Sehat (Aman)', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' };
   if (totalBalance < 500000 && totalBalance > 0) {
@@ -360,6 +364,29 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </p>
             </div>
           </div>
+
+          {/* Progress Kelunasan Iuran Bulan Ini */}
+          {members.length > 0 && (
+            <div className="mb-4 bg-white/5 border border-white/10 rounded-2xl p-3.5">
+              <div className="flex items-center justify-between text-xs mb-1.5">
+                <span className="text-slate-300 font-semibold flex items-center gap-1.5">
+                  <Users className="w-3.5 h-3.5 text-emerald-400" />
+                  Kelunasan Iuran Bulan Ini
+                </span>
+                <span className="font-mono-tech font-bold text-emerald-400">
+                  {paidThisMonthCount}/{members.length} siswa ({duesProgressPct}%)
+                </span>
+              </div>
+              <div className="w-full bg-slate-950/80 h-2.5 rounded-full overflow-hidden border border-white/5">
+                <div
+                  className={`h-full rounded-full transition-all duration-500 ${
+                    duesProgressPct >= 80 ? 'bg-emerald-500' : duesProgressPct >= 40 ? 'bg-amber-400' : 'bg-rose-500'
+                  }`}
+                  style={{ width: `${duesProgressPct}%` }}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="h-64 sm:h-72 w-full">
             <ResponsiveContainer width="100%" height="100%">

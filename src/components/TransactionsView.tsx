@@ -120,7 +120,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
     window.print();
   };
 
-  const handleShareToWA = (tx: Transaction) => {
+  const buildWhatsAppShareLink = (tx: Transaction): string => {
     const emoji = tx.type === 'pemasukan' ? '💰' : '📤';
     const label = tx.type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran';
     const message =
@@ -131,7 +131,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
       `Tanggal: ${formatDateIndonesian(tx.date)}\n` +
       `Status: ${tx.verified ? '✅ Terverifikasi' : '⌛ Menunggu Verifikasi'}\n\n` +
       `_Dikirim otomatis dari Website Kas 12 TPM 1_`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+    return `https://wa.me/?text=${encodeURIComponent(message)}`;
   };
 
   return (
@@ -438,13 +438,15 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
                           <Receipt className="w-4 h-4" />
                         </button>
 
-                        <button
-                          onClick={() => handleShareToWA(tx)}
-                          className="p-1.5 text-emerald-400 hover:bg-white/10 rounded-xl transition cursor-pointer"
+                        <a
+                          href={buildWhatsAppShareLink(tx)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="p-1.5 text-emerald-400 hover:bg-white/10 rounded-xl transition cursor-pointer inline-flex items-center justify-center"
                           title="Bagikan info transaksi ini ke Grup WhatsApp Kelas"
                         >
                           <Share2 className="w-4 h-4" />
-                        </button>
+                        </a>
 
                         {isAdmin ? (
                           <>

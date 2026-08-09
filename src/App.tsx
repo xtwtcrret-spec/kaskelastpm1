@@ -80,6 +80,12 @@ export default function App() {
     setAuditLog((prev) => [entry, ...prev].slice(0, 300)); // simpan maksimal 300 entri terakhir
   };
 
+  const handleClearAuditLog = () => {
+    setAuditLog([]);
+    // Catat 1 entri baru setelah dibersihkan, biar tetap ada jejak transparansi kapan & oleh siapa log dikosongkan
+    logAction('Bersihkan Log', 'Seluruh riwayat perubahan sebelumnya dikosongkan oleh Admin');
+  };
+
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [dataLoadError, setDataLoadError] = useState<string | null>(null);
   const hasLoadedRef = React.useRef(false);
@@ -660,6 +666,8 @@ export default function App() {
                 onAddTransaction={(txData) => {
                   handleSaveTransaction(txData);
                 }}
+                isAdmin={isAdmin}
+                onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
               />
             )}
 
@@ -669,6 +677,8 @@ export default function App() {
                 transactions={transactions}
                 onAddBudget={handleAddBudget}
                 onDeleteBudget={handleDeleteBudget}
+                isAdmin={isAdmin}
+                onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
               />
             )}
 
@@ -677,7 +687,12 @@ export default function App() {
             )}
 
             {activeTab === 'audit-log' && (
-              <AuditLogView auditLog={auditLog} />
+              <AuditLogView
+                auditLog={auditLog}
+                isAdmin={isAdmin}
+                onClearLog={handleClearAuditLog}
+                onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
+              />
             )}
 
             {activeTab === 'settings' && (

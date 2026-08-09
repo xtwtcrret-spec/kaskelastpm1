@@ -215,6 +215,49 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                 />
               </div>
             </div>
+
+            <div className="sm:col-span-2">
+              <label className="block text-slate-300 font-semibold mb-1.5">Gambar QRIS Kas</label>
+              <div className="flex items-start gap-4">
+                {formData.qrisImageUrl && (
+                  <img
+                    src={formData.qrisImageUrl}
+                    alt="Preview QRIS"
+                    className="w-24 h-24 object-cover rounded-2xl border border-white/10 flex-shrink-0"
+                  />
+                )}
+                <div className="flex-1 space-y-2">
+                  <label
+                    className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-semibold cursor-pointer transition ${
+                      isAdmin
+                        ? 'bg-indigo-600 hover:bg-indigo-500 text-white'
+                        : 'bg-white/5 text-slate-500 cursor-not-allowed'
+                    }`}
+                  >
+                    <Upload className="w-4 h-4" />
+                    <span>Upload Gambar QRIS</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      disabled={!isAdmin}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        const reader = new FileReader();
+                        reader.onload = () => {
+                          setFormData({ ...formData, qrisImageUrl: reader.result as string });
+                        };
+                        reader.readAsDataURL(file);
+                      }}
+                      className="hidden"
+                    />
+                  </label>
+                  <p className="text-[11px] text-slate-500">
+                    Upload foto/screenshot QRIS kas kamu (JPG/PNG). Setelah upload, jangan lupa klik tombol Simpan di bawah.
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
 

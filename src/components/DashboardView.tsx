@@ -64,6 +64,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   members,
   settings,
   isAdmin = false,
+  onOpenAdminLogin,
   onOpenAddTx,
   onOpenSmartNote,
   onSelectReceipt,

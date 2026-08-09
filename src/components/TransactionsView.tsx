@@ -19,7 +19,8 @@ import {
   Lock,
   CreditCard,
   Clock,
-  ShieldCheck
+  ShieldCheck,
+  Share2
 } from 'lucide-react';
 
 interface TransactionsViewProps {
@@ -119,6 +120,20 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
     window.print();
   };
 
+  const handleShareToWA = (tx: Transaction) => {
+    const emoji = tx.type === 'pemasukan' ? '💰' : '📤';
+    const label = tx.type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran';
+    const message =
+      `${emoji} *Update Kas 12 TPM 1*\n\n` +
+      `${label}: ${tx.description}\n` +
+      `Nominal: Rp ${tx.amount.toLocaleString('id-ID')}\n` +
+      `Oleh/Penanggung Jawab: ${tx.contributor}\n` +
+      `Tanggal: ${formatDateIndonesian(tx.date)}\n` +
+      `Status: ${tx.verified ? '✅ Terverifikasi' : '⌛ Menunggu Verifikasi'}\n\n` +
+      `_Dikirim otomatis dari Website Kas 12 TPM 1_`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(message)}`, '_blank');
+  };
+
   return (
     <div className="space-y-6 pb-12">
       
@@ -133,7 +148,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
           </p>
         </div>
 
-        <div className="flex items-center gap-2 flex-wrap">
+        <div className="flex items-center gap-2 flex-wrap no-print">
           {onOpenStudentPay && (
             <motion.button
               whileHover={{ scale: 1.03 }}
@@ -326,7 +341,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
                 <th className="py-3.5 px-4">Metode</th>
                 <th className="py-3.5 px-4 text-right">Nominal (Rp)</th>
                 <th className="py-3.5 px-4 text-center">Verifikasi</th>
-                <th className="py-3.5 px-4 text-center">Aksi</th>
+                <th className="py-3.5 px-4 text-center no-print">Aksi</th>
               </tr>
             </thead>
 
@@ -413,7 +428,7 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
                     </td>
 
                     {/* Actions */}
-                    <td className="py-3.5 px-4 text-center whitespace-nowrap">
+                    <td className="py-3.5 px-4 text-center whitespace-nowrap no-print">
                       <div className="flex items-center justify-center gap-1">
                         <button
                           onClick={() => onSelectReceipt(tx)}
@@ -421,6 +436,14 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
                           title="Cetak/Lihat Kuitansi Official"
                         >
                           <Receipt className="w-4 h-4" />
+                        </button>
+
+                        <button
+                          onClick={() => handleShareToWA(tx)}
+                          className="p-1.5 text-emerald-400 hover:bg-white/10 rounded-xl transition cursor-pointer"
+                          title="Bagikan info transaksi ini ke Grup WhatsApp Kelas"
+                        >
+                          <Share2 className="w-4 h-4" />
                         </button>
 
                         {isAdmin ? (

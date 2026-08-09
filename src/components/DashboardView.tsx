@@ -584,13 +584,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
 
           <div className="mt-4 pt-4 border-t border-white/10 flex justify-center">
-            <button
-              onClick={onOpenAddTx}
-              className="bg-white hover:bg-slate-200 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-2xl transition flex items-center gap-2 cursor-pointer shadow-lg shadow-white/10"
-            >
-              <Plus className="w-4 h-4 text-emerald-600" />
-              <span>Tambah Transaksi Baru</span>
-            </button>
+            {isAdmin ? (
+              <button
+                onClick={onOpenAddTx}
+                className="bg-white hover:bg-slate-200 text-slate-950 text-xs font-bold px-4 py-2.5 rounded-2xl transition flex items-center gap-2 cursor-pointer shadow-lg shadow-white/10"
+              >
+                <Plus className="w-4 h-4 text-emerald-600" />
+                <span>Tambah Transaksi Baru</span>
+              </button>
+            ) : (
+              <button
+                onClick={onOpenAdminLogin}
+                className="bg-white/10 hover:bg-white/15 text-slate-300 border border-white/10 text-xs font-bold px-4 py-2.5 rounded-2xl transition flex items-center gap-2 cursor-pointer"
+              >
+                <Lock className="w-4 h-4" />
+                <span>Login Admin buat Catat Transaksi</span>
+              </button>
+            )}
           </div>
         </div>
 

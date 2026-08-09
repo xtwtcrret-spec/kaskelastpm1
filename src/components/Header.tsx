@@ -44,7 +44,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenQRIS,
 }) => {
   return (
-    <header className="bg-slate-950/80 backdrop-blur-2xl border-b border-amber-500/20 text-white sticky top-0 z-30 shadow-2xl relative overflow-hidden">
+    <header className="no-print bg-slate-950/80 backdrop-blur-2xl border-b border-amber-500/20 text-white sticky top-0 z-30 shadow-2xl relative overflow-hidden">
       {/* Background Decorative Blueprint Accent */}
       <div className="absolute inset-0 bg-blueprint-grid opacity-30 pointer-events-none" />
       <div className="absolute -left-12 -top-12 w-48 h-48 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />

@@ -15,6 +15,8 @@ import {
   Cpu
 } from 'lucide-react';
 import { motion } from 'motion/react';
+import { LiveClock } from './LiveClock';
+import { AmbientSoundToggle } from './AmbientSoundToggle';
 
 interface HeaderProps {
   settings: OrganizationSettings;
@@ -94,6 +96,9 @@ export const Header: React.FC<HeaderProps> = ({
 
           {/* Center/Right: Balance Pill & Industrial Quick Actions */}
           <div className="flex flex-wrap items-center justify-between md:justify-end w-full md:w-auto gap-2.5">
+
+            <LiveClock />
+            <AmbientSoundToggle />
             
             {/* Balance Gauge Card */}
             <motion.div 

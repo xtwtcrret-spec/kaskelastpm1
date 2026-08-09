@@ -10,10 +10,14 @@ import {
   Users,
   Target,
   ShieldQuestion,
+  Lock,
 } from 'lucide-react';
 
 interface AuditLogViewProps {
   auditLog: AuditLogEntry[];
+  isAdmin?: boolean;
+  onClearLog?: () => void;
+  onOpenAdminLogin?: () => void;
 }
 
 function getActionIcon(action: string) {
@@ -39,18 +43,50 @@ function formatLogTime(iso: string): string {
   });
 }
 
-export const AuditLogView: React.FC<AuditLogViewProps> = ({ auditLog }) => {
+export const AuditLogView: React.FC<AuditLogViewProps> = ({ auditLog, isAdmin = false, onClearLog, onOpenAdminLogin }) => {
+  const handleClearClick = () => {
+    if (!isAdmin) {
+      onOpenAdminLogin?.();
+      return;
+    }
+    const confirmed = window.confirm(
+      'Yakin mau bersihkan seluruh riwayat perubahan? Tindakan ini nggak bisa dibatalkan.'
+    );
+    if (confirmed) {
+      onClearLog?.();
+    }
+  };
+
   return (
     <div className="space-y-6 pb-12">
       {/* Header Banner */}
       <div className="bg-slate-900/80 backdrop-blur-xl p-6 rounded-3xl border border-amber-500/30 shadow-xl metallic-card">
-        <h2 className="text-xl font-black font-tech uppercase tracking-wide text-white flex items-center gap-2">
-          <History className="w-6 h-6 text-amber-400" />
-          Riwayat Perubahan (Audit Log)
-        </h2>
-        <p className="text-xs text-slate-300 mt-1">
-          Catatan transparan semua perubahan data kas — siapa nambah/edit/hapus/verifikasi apa, dan kapan. Bisa dilihat semua orang.
-        </p>
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div>
+            <h2 className="text-xl font-black font-tech uppercase tracking-wide text-white flex items-center gap-2">
+              <History className="w-6 h-6 text-amber-400" />
+              Riwayat Perubahan (Audit Log)
+            </h2>
+            <p className="text-xs text-slate-300 mt-1">
+              Catatan transparan semua perubahan data kas — siapa nambah/edit/hapus/verifikasi apa, dan kapan. Bisa dilihat semua orang.
+            </p>
+          </div>
+
+          {auditLog.length > 0 && (
+            <button
+              onClick={handleClearClick}
+              className={`text-xs font-bold px-3.5 py-2 rounded-2xl transition flex items-center gap-1.5 cursor-pointer flex-shrink-0 ${
+                isAdmin
+                  ? 'bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/30'
+                  : 'bg-white/5 hover:bg-white/10 text-slate-400 border border-white/10'
+              }`}
+              title={isAdmin ? 'Bersihkan seluruh riwayat' : 'Login Admin untuk membersihkan riwayat'}
+            >
+              {isAdmin ? <Trash2 className="w-3.5 h-3.5" /> : <Lock className="w-3.5 h-3.5" />}
+              <span>Bersihkan Log</span>
+            </button>
+          )}
+        </div>
       </div>
 
       {auditLog.length === 0 ? (

@@ -24,6 +24,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [verified, setVerified] = useState<boolean>(true);
   const [receiptUrl, setReceiptUrl] = useState<string | null>(null);
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (initialTx) {
@@ -47,6 +48,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
       setVerified(true);
       setReceiptUrl(null);
     }
+    setErrors({});
   }, [initialTx, isOpen]);
 
   if (!isOpen) return null;
@@ -68,13 +70,45 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!description.trim() || amount <= 0) return;
+
+    const newErrors: Record<string, string> = {};
+
+    if (!description.trim()) {
+      newErrors.description = 'Deskripsi wajib diisi.';
+    }
+
+    if (!amount || isNaN(amount) || amount <= 0) {
+      newErrors.amount = 'Nominal harus lebih dari Rp 0.';
+    } else if (amount > 500000000) {
+      newErrors.amount = 'Nominal kelihatannya kebesaran, cek lagi angkanya (maks Rp 500.000.000).';
+    }
+
+    if (!date) {
+      newErrors.date = 'Tanggal wajib diisi.';
+    } else {
+      const selectedDate = new Date(date);
+      const today = new Date();
+      today.setHours(23, 59, 59, 999);
+      const maxFutureDate = new Date();
+      maxFutureDate.setDate(maxFutureDate.getDate() + 1);
+      maxFutureDate.setHours(23, 59, 59, 999);
+      if (selectedDate > maxFutureDate) {
+        newErrors.date = 'Tanggal nggak boleh jauh di masa depan.';
+      }
+    }
+
+    if (Object.keys(newErrors).length > 0) {
+      setErrors(newErrors);
+      return;
+    }
+
+    setErrors({});
 
     onSave({
       type,
       amount,
       category,
-      description,
+      description: description.trim(),
       contributor: contributor.trim() || 'Pengurus',
       paymentMethod,
       date,
@@ -150,10 +184,13 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 type="number"
                 value={amount}
                 onChange={(e) => setAmount(Number(e.target.value))}
-                className="w-full p-3 rounded-2xl border border-white/10 bg-white/5 font-black text-emerald-400 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className={`w-full p-3 rounded-2xl border bg-white/5 font-black text-emerald-400 text-sm focus:outline-none focus:ring-2 ${
+                  errors.amount ? 'border-rose-500/60 focus:ring-rose-500' : 'border-white/10 focus:ring-indigo-500'
+                }`}
                 step={1000}
                 required
               />
+              {errors.amount && <p className="text-rose-400 text-[11px] mt-1">{errors.amount}</p>}
             </div>
 
             {/* Category */}
@@ -194,9 +231,12 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
               placeholder="e.g. Pembelian snack rapat evaluasi bulanan"
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className="w-full p-3 rounded-2xl border border-white/10 bg-white/5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              className={`w-full p-3 rounded-2xl border bg-white/5 text-white placeholder-slate-500 focus:outline-none focus:ring-2 ${
+                errors.description ? 'border-rose-500/60 focus:ring-rose-500' : 'border-white/10 focus:ring-indigo-500'
+              }`}
               required
             />
+            {errors.description && <p className="text-rose-400 text-[11px] mt-1">{errors.description}</p>}
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -238,9 +278,12 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
-                className="w-full p-3 rounded-2xl border border-white/10 bg-white/5 text-white focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                className={`w-full p-3 rounded-2xl border bg-white/5 text-white focus:outline-none focus:ring-2 ${
+                  errors.date ? 'border-rose-500/60 focus:ring-rose-500' : 'border-white/10 focus:ring-indigo-500'
+                }`}
                 required
               />
+              {errors.date && <p className="text-rose-400 text-[11px] mt-1">{errors.date}</p>}
             </div>
 
             {/* Verified Checkbox */}

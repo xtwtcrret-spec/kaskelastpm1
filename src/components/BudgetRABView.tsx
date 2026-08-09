@@ -1,13 +1,15 @@
 import React, { useState } from 'react';
 import { Transaction, BudgetItem } from '../types';
 import { formatRupiah } from '../utils/formatters';
-import { Target, Plus, AlertCircle, CheckCircle2, TrendingUp, Edit3, Trash2 } from 'lucide-react';
+import { Target, Plus, AlertCircle, CheckCircle2, TrendingUp, Edit3, Trash2, Lock } from 'lucide-react';
 
 interface BudgetRABViewProps {
   budgets: BudgetItem[];
   transactions: Transaction[];
   onAddBudget: (budget: Omit<BudgetItem, 'id'>) => void;
   onDeleteBudget: (id: string) => void;
+  isAdmin?: boolean;
+  onOpenAdminLogin?: () => void;
 }
 
 export const BudgetRABView: React.FC<BudgetRABViewProps> = ({
@@ -15,6 +17,8 @@ export const BudgetRABView: React.FC<BudgetRABViewProps> = ({
   transactions,
   onAddBudget,
   onDeleteBudget,
+  isAdmin = false,
+  onOpenAdminLogin,
 }) => {
   const [showModal, setShowModal] = useState(false);
   const [category, setCategory] = useState('Konsumsi & Acara');
@@ -57,13 +61,23 @@ export const BudgetRABView: React.FC<BudgetRABViewProps> = ({
           </p>
         </div>
 
-        <button
-          onClick={() => setShowModal(true)}
-          className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black px-4 py-2.5 rounded-2xl transition flex items-center gap-1.5 shadow-lg shadow-amber-500/20 cursor-pointer"
-        >
-          <Plus className="w-4 h-4 text-slate-950" />
-          <span>+ Tambah Anggaran Kategori</span>
-        </button>
+        {isAdmin ? (
+          <button
+            onClick={() => setShowModal(true)}
+            className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black px-4 py-2.5 rounded-2xl transition flex items-center gap-1.5 shadow-lg shadow-amber-500/20 cursor-pointer"
+          >
+            <Plus className="w-4 h-4 text-slate-950" />
+            <span>+ Tambah Anggaran Kategori</span>
+          </button>
+        ) : (
+          <button
+            onClick={onOpenAdminLogin}
+            className="bg-amber-500 hover:bg-amber-400 text-slate-950 text-xs font-black px-3.5 py-2.5 rounded-2xl transition flex items-center gap-1.5 shadow-lg shadow-amber-500/20 cursor-pointer"
+          >
+            <Lock className="w-4 h-4" />
+            <span>Login Admin buat Kelola RAB</span>
+          </button>
+        )}
       </div>
 
       {/* Grid of Category Budgets */}
@@ -106,13 +120,15 @@ export const BudgetRABView: React.FC<BudgetRABViewProps> = ({
                     <span className={`text-[10px] font-mono-tech font-bold px-2.5 py-0.5 rounded-full border ${statusBadge.color}`}>
                       {statusBadge.label}
                     </span>
-                    <button
-                      onClick={() => onDeleteBudget(item.id)}
-                      className="text-slate-400 hover:text-rose-400 p-1 cursor-pointer"
-                      title="Hapus Target"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </button>
+                    {isAdmin && (
+                      <button
+                        onClick={() => onDeleteBudget(item.id)}
+                        className="text-slate-400 hover:text-rose-400 p-1 cursor-pointer"
+                        title="Hapus Target"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                   </div>
                 </div>
 
@@ -154,7 +170,7 @@ export const BudgetRABView: React.FC<BudgetRABViewProps> = ({
       </div>
 
       {/* Modal Add Budget */}
-      {showModal && (
+      {showModal && isAdmin && (
         <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-md flex items-center justify-center p-4">
           <div className="bg-slate-900/90 backdrop-blur-2xl rounded-3xl max-w-md w-full p-6 shadow-2xl border border-white/10 text-white space-y-4">
             <h3 className="text-lg font-bold text-white">Tambah Target Anggaran RAB</h3>

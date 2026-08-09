@@ -1,0 +1,6 @@
+{
+  "name": "Kas kelas 12 tpm 1",
+  "description": "Aplikasi manajemen uang kas kelas 12 TPM 1 modern & transparan. Dilengkapi pencatatan iuran anggota, kuitansi digital, anggaran RAB, dan AI Cash Flow Advisor.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

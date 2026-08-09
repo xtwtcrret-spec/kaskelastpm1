@@ -4,7 +4,8 @@ import {
   Transaction, 
   Member, 
   BudgetItem, 
-  OrganizationSettings 
+  OrganizationSettings,
+  AuditLogEntry
 } from './types';
 import { 
   initialTransactions, 
@@ -36,6 +37,8 @@ import { AIAuditView } from './components/AIAuditView';
 import { BudgetRABView } from './components/BudgetRABView';
 import { PaymentPortalView } from './components/PaymentPortalView';
 import { SettingsView } from './components/SettingsView';
+import { LeaderboardView } from './components/LeaderboardView';
+import { AuditLogView } from './components/AuditLogView';
 
 import { TransactionModal } from './components/modals/TransactionModal';
 import { ReceiptModal } from './components/modals/ReceiptModal';
@@ -54,7 +57,9 @@ import {
   QrCode, 
   Settings as SettingsIcon,
   Sparkles,
-  ShieldCheck
+  ShieldCheck,
+  Trophy,
+  History
 } from 'lucide-react';
 
 export default function App() {
@@ -64,6 +69,19 @@ export default function App() {
   const [members, setMembers] = useState<Member[]>(initialMembers);
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
   const [budgets, setBudgets] = useState<BudgetItem[]>(initialBudgets);
+  const [auditLog, setAuditLog] = useState<AuditLogEntry[]>([]);
+
+  // Catat 1 baris riwayat perubahan (audit log), dilihat semua orang biar transparan
+  const logAction = (action: string, detail: string) => {
+    const entry: AuditLogEntry = {
+      id: generateId('log'),
+      timestamp: new Date().toISOString(),
+      actor: isAdmin ? (settings.treasurerName || 'Admin Bendahara') : 'Sistem',
+      action,
+      detail,
+    };
+    setAuditLog((prev) => [entry, ...prev].slice(0, 300)); // simpan maksimal 300 entri terakhir
+  };
 
   const [isLoadingData, setIsLoadingData] = useState(true);
   const [dataLoadError, setDataLoadError] = useState<string | null>(null);
@@ -93,6 +111,7 @@ export default function App() {
         if (data.members) setMembers(data.members);
         if (data.transactions) setTransactions(data.transactions);
         if (data.budgets) setBudgets(data.budgets);
+        if (data.audit_log) setAuditLog(data.audit_log);
       }
 
       hasLoadedRef.current = true;
@@ -112,6 +131,7 @@ export default function App() {
           if (data.members) setMembers(data.members);
           if (data.transactions) setTransactions(data.transactions);
           if (data.budgets) setBudgets(data.budgets);
+          if (data.audit_log) setAuditLog(data.audit_log);
         }
       )
       .subscribe();
@@ -137,6 +157,7 @@ export default function App() {
           members,
           transactions,
           budgets,
+          audit_log: auditLog,
           updated_at: new Date().toISOString(),
         })
         .eq('id', KAS_ROW_ID);
@@ -145,7 +166,7 @@ export default function App() {
       }
     }, 400); // debounce biar nggak spam request tiap ketikan
     return () => clearTimeout(timeout);
-  }, [settings, members, transactions, budgets]);
+  }, [settings, members, transactions, budgets, auditLog]);
 
 
   const [activeTab, setActiveTab] = useState<string>('dashboard');
@@ -186,12 +207,20 @@ export default function App() {
       setTransactions((prev) =>
         prev.map((t) => (t.id === editingTx.id ? { ...txData, id: editingTx.id } : t))
       );
+      logAction(
+        'Edit Transaksi',
+        `${txData.type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'} "${txData.description}" diubah menjadi Rp ${txData.amount.toLocaleString('id-ID')}`
+      );
     } else {
       const newTx: Transaction = {
         ...txData,
         id: generateId('tx'),
       };
       setTransactions((prev) => [newTx, ...prev]);
+      logAction(
+        txData.type === 'pemasukan' ? 'Tambah Pemasukan' : 'Tambah Pengeluaran',
+        `"${txData.description}" sebesar Rp ${txData.amount.toLocaleString('id-ID')} (${txData.contributor})`
+      );
     }
     setEditingTx(null);
   };
@@ -207,6 +236,13 @@ export default function App() {
 
     // Filter out transaction
     setTransactions(remainingTransactions);
+
+    if (targetTx) {
+      logAction(
+        'Hapus Transaksi',
+        `"${targetTx.description}" sebesar Rp ${targetTx.amount.toLocaleString('id-ID')} (${targetTx.contributor})`
+      );
+    }
 
     // Kalau transaksi yang dihapus itu terverifikasi & terkait iuran anggota,
     // hitung ulang status lunas semua bulan anggota itu (termasuk efek carry-over-nya).
@@ -253,6 +289,11 @@ export default function App() {
 
       const nextTransactions = prev.map((t) => (t.id === id ? { ...t, verified: nextVerified } : t));
 
+      logAction(
+        nextVerified ? 'Verifikasi Transaksi' : 'Batalkan Verifikasi',
+        `"${targetTx.description}" sebesar Rp ${targetTx.amount.toLocaleString('id-ID')} (${targetTx.contributor})`
+      );
+
       if (targetMemberId) {
         // Hitung ulang status lunas SEMUA bulan untuk anggota ini pakai sistem ledger
         // (otomatis handle: bayar sebagian TIDAK langsung lunas, dan kelebihan bayar
@@ -282,6 +323,7 @@ export default function App() {
       setMembers((prev) =>
         prev.map((m) => (m.id === existingId ? { ...m, ...memberData } : m))
       );
+      logAction('Edit Siswa', `Data "${memberData.name}" diperbarui`);
     } else {
       const newMember: Member = {
         ...memberData,
@@ -289,6 +331,7 @@ export default function App() {
         duesPaidMonths: [],
       };
       setMembers((prev) => [...prev, newMember]);
+      logAction('Tambah Siswa', `"${memberData.name}" ditambahkan ke daftar anggota`);
     }
     setEditingMember(null);
   };
@@ -314,6 +357,7 @@ export default function App() {
     }));
 
     setMembers((prev) => [...prev, ...newMembers]);
+    logAction('Batch Tambah Siswa', `${newMembers.length} siswa ditambahkan sekaligus`);
   };
 
   const handleDeleteMember = (id: string) => {
@@ -322,7 +366,9 @@ export default function App() {
 
   const executeDeleteMember = () => {
     if (deletingMemberId) {
+      const targetMember = members.find((m) => m.id === deletingMemberId);
       setMembers((prev) => prev.filter((m) => m.id !== deletingMemberId));
+      if (targetMember) logAction('Hapus Siswa', `"${targetMember.name}" dihapus dari daftar anggota`);
     }
     setDeletingMemberId(null);
   };
@@ -352,6 +398,11 @@ export default function App() {
           setTransactions((t) => [newTx, ...t]);
         }
 
+        logAction(
+          isPaid ? 'Batalkan Status Lunas (Manual)' : 'Tandai Lunas (Manual)',
+          `Bulan ${monthKey} untuk "${m.name}"`
+        );
+
         return { ...m, duesPaidMonths: updatedMonths };
       })
     );
@@ -364,10 +415,13 @@ export default function App() {
       id: generateId('b'),
     };
     setBudgets((prev) => [...prev, newBudget]);
+    logAction('Tambah Anggaran (RAB)', `"${budgetData.category}" sebesar Rp ${budgetData.allocatedAmount.toLocaleString('id-ID')}`);
   };
 
   const handleDeleteBudget = (id: string) => {
+    const targetBudget = budgets.find((b) => b.id === id);
     setBudgets((prev) => prev.filter((b) => b.id !== id));
+    if (targetBudget) logAction('Hapus Anggaran (RAB)', `"${targetBudget.category}" dihapus`);
   };
 
   // Export / Import Backup
@@ -434,9 +488,11 @@ export default function App() {
     { id: 'dashboard', label: 'Dashboard Utama', icon: LayoutDashboard },
     { id: 'transactions', label: 'Buku Kas & Transaksi', icon: BookOpen },
     { id: 'members', label: 'Iuran Anggota', icon: Users },
+    { id: 'leaderboard', label: 'Papan Peringkat', icon: Trophy },
     { id: 'ai-audit', label: 'AI Audit & Smart Parser', icon: Bot, badge: 'Gemini' },
     { id: 'rab', label: 'RAB Anggaran', icon: Target },
     { id: 'payment', label: 'Info QRIS & Transfer', icon: QrCode },
+    { id: 'audit-log', label: 'Riwayat Perubahan', icon: History },
     { id: 'settings', label: 'Pengaturan', icon: SettingsIcon },
   ];
 
@@ -601,6 +657,10 @@ export default function App() {
               />
             )}
 
+            {activeTab === 'leaderboard' && (
+              <LeaderboardView members={members} transactions={transactions} />
+            )}
+
             {activeTab === 'ai-audit' && (
               <AIAuditView
                 transactions={transactions}
@@ -623,6 +683,10 @@ export default function App() {
 
             {activeTab === 'payment' && (
               <PaymentPortalView settings={settings} />
+            )}
+
+            {activeTab === 'audit-log' && (
+              <AuditLogView auditLog={auditLog} />
             )}
 
             {activeTab === 'settings' && (

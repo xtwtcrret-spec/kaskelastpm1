@@ -15,6 +15,19 @@ import {
 import { supabase, KAS_ROW_ID } from './lib/supabaseClient';
 import { resolveTransactionMemberId, resolveTransactionMonth } from './utils/dues';
 
+// ID unik anti-tabrakan — sebelumnya pakai Date.now() doang, yang bisa
+// menghasilkan ID SAMA kalau 2+ data dibuat dalam milidetik yang sama
+// (misal nambah beberapa transaksi Rp 8.000 secara cepat berturut-turut).
+// Efeknya: hapus/verifikasi satu transaksi ikut mempengaruhi transaksi lain
+// yang ID-nya kebetulan sama.
+const generateId = (prefix: string): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `${prefix}-${crypto.randomUUID()}`;
+  }
+  return `${prefix}-${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+};
+
+
 import { Header } from './components/Header';
 import { DashboardView } from './components/DashboardView';
 import { TransactionsView } from './components/TransactionsView';
@@ -176,7 +189,7 @@ export default function App() {
     } else {
       const newTx: Transaction = {
         ...txData,
-        id: `tx-${Date.now()}`,
+        id: generateId('tx'),
       };
       setTransactions((prev) => [newTx, ...prev]);
     }
@@ -298,7 +311,7 @@ export default function App() {
     } else {
       const newMember: Member = {
         ...memberData,
-        id: `m-${Date.now()}`,
+        id: generateId('m'),
         duesPaidMonths: [],
       };
       setMembers((prev) => [...prev, newMember]);
@@ -317,7 +330,7 @@ export default function App() {
     ];
 
     const newMembers: Member[] = namesList.map((name, index) => ({
-      id: `m-${Date.now()}-${index}`,
+      id: generateId('m'),
       name: name.trim(),
       phone: `6289654783${(100 + index).toString().padStart(3, '0')}`,
       role: index === 0 ? 'Ketua Kelas' : index === 1 ? 'Bendahara' : index === 2 ? 'Sekretaris' : 'Siswa',
@@ -374,7 +387,7 @@ export default function App() {
   const handleAddBudget = (budgetData: Omit<BudgetItem, 'id'>) => {
     const newBudget: BudgetItem = {
       ...budgetData,
-      id: `b-${Date.now()}`,
+      id: generateId('b'),
     };
     setBudgets((prev) => [...prev, newBudget]);
   };

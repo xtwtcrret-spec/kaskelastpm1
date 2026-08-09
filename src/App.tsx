@@ -13,7 +13,7 @@ import {
   initialSettings 
 } from './data/initialData';
 import { supabase, KAS_ROW_ID } from './lib/supabaseClient';
-import { resolveTransactionMemberId, resolveTransactionMonth } from './utils/dues';
+import { computeMemberDuesLedger } from './utils/dues';
 
 // ID unik anti-tabrakan — sebelumnya pakai Date.now() doang, yang bisa
 // menghasilkan ID SAMA kalau 2+ data dibuat dalam milidetik yang sama
@@ -203,15 +203,15 @@ export default function App() {
   const executeDeleteTransaction = () => {
     if (!deletingTxId) return;
     const targetTx = transactions.find((t) => t.id === deletingTxId);
+    const remainingTransactions = transactions.filter((t) => t.id !== deletingTxId);
 
     // Filter out transaction
-    setTransactions((prev) => prev.filter((t) => t.id !== deletingTxId));
+    setTransactions(remainingTransactions);
 
-    // If transaction was verified and matched member/month, un-mark dues month
+    // Kalau transaksi yang dihapus itu terverifikasi & terkait iuran anggota,
+    // hitung ulang status lunas semua bulan anggota itu (termasuk efek carry-over-nya).
     if (targetTx && targetTx.verified) {
       let targetMemberId = targetTx.memberId;
-      let targetMonth = targetTx.forMonth;
-
       if (!targetMemberId && targetTx.contributor) {
         const foundMember = members.find(
           (m) => m.name.toLowerCase().trim() === targetTx.contributor!.toLowerCase().trim()
@@ -219,20 +219,15 @@ export default function App() {
         if (foundMember) targetMemberId = foundMember.id;
       }
 
-      if (!targetMonth && targetTx.description) {
-        const match = targetTx.description.match(/Bulan\s+(\d{4}-\d{2})/i);
-        if (match) targetMonth = match[1];
-      }
-
-      if (targetMemberId && targetMonth) {
+      if (targetMemberId) {
+        const { paidMonths } = computeMemberDuesLedger(
+          targetMemberId,
+          remainingTransactions,
+          members,
+          settings.monthlyDuesStandard
+        );
         setMembers((mPrev) =>
-          mPrev.map((m) => {
-            if (m.id !== targetMemberId) return m;
-            return {
-              ...m,
-              duesPaidMonths: m.duesPaidMonths.filter((month) => month !== targetMonth),
-            };
-          })
+          mPrev.map((m) => (m.id === targetMemberId ? { ...m, duesPaidMonths: paidMonths } : m))
         );
       }
     }
@@ -247,10 +242,8 @@ export default function App() {
 
       const nextVerified = !targetTx.verified;
 
-      // Resolve member and month if available
+      // Resolve member if available (untuk update status lunas)
       let targetMemberId = targetTx.memberId;
-      let targetMonth = targetTx.forMonth;
-
       if (!targetMemberId && targetTx.contributor) {
         const foundMember = members.find(
           (m) => m.name.toLowerCase().trim() === targetTx.contributor.toLowerCase().trim()
@@ -258,40 +251,21 @@ export default function App() {
         if (foundMember) targetMemberId = foundMember.id;
       }
 
-      if (!targetMonth && targetTx.description) {
-        const match = targetTx.description.match(/Bulan\s+(\d{4}-\d{2})/i);
-        if (match) targetMonth = match[1];
-      }
-
       const nextTransactions = prev.map((t) => (t.id === id ? { ...t, verified: nextVerified } : t));
 
-      if (targetMemberId && targetMonth) {
-        // Hitung TOTAL semua transaksi terverifikasi milik anggota ini untuk bulan ini
-        // (bukan cuma cek "ada transaksi atau nggak"), supaya bayar sebagian
-        // (misal Rp 2.000 dari target Rp 8.000) TIDAK langsung dianggap Lunas.
-        const totalPaidForMonth = nextTransactions
-          .filter(
-            (t) =>
-              t.verified &&
-              resolveTransactionMemberId(t, members) === targetMemberId &&
-              resolveTransactionMonth(t) === targetMonth
-          )
-          .reduce((sum, t) => sum + t.amount, 0);
-
-        const shouldBePaid = totalPaidForMonth >= settings.monthlyDuesStandard;
+      if (targetMemberId) {
+        // Hitung ulang status lunas SEMUA bulan untuk anggota ini pakai sistem ledger
+        // (otomatis handle: bayar sebagian TIDAK langsung lunas, dan kelebihan bayar
+        // di 1 bulan otomatis "nyicil" nutup bulan-bulan berikutnya).
+        const { paidMonths } = computeMemberDuesLedger(
+          targetMemberId,
+          nextTransactions,
+          members,
+          settings.monthlyDuesStandard
+        );
 
         setMembers((mPrev) =>
-          mPrev.map((m) => {
-            if (m.id !== targetMemberId) return m;
-            const alreadyMarked = m.duesPaidMonths.includes(targetMonth!);
-            let updatedMonths = m.duesPaidMonths;
-            if (shouldBePaid && !alreadyMarked) {
-              updatedMonths = [...m.duesPaidMonths, targetMonth!];
-            } else if (!shouldBePaid && alreadyMarked) {
-              updatedMonths = m.duesPaidMonths.filter((k) => k !== targetMonth);
-            }
-            return { ...m, duesPaidMonths: updatedMonths };
-          })
+          mPrev.map((m) => (m.id === targetMemberId ? { ...m, duesPaidMonths: paidMonths } : m))
         );
       }
 

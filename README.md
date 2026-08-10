@@ -1,12 +1,8 @@
 <div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
+<a href="https://ibb.co/TxScXSBp"><img src="https://i.ibb.co/Q3R9BRFz/image-bb5ea283.png" alt="image-bb5ea283" border="0"></a>
 </div>
 
-# Run and deploy your AI Studio app
-
-This contains everything you need to run your app locally.
-
-View your app in AI Studio: https://ai.studio/apps/339983aa-78ae-47fe-8a4e-82725f2427a9
+# Farhan Repositories
 
 ## Run Locally
 

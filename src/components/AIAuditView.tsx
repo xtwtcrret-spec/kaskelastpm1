@@ -139,7 +139,7 @@ export const AIAuditView: React.FC<AIAuditViewProps> = ({
           ...resData.data,
           generatedAt: new Date().toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }),
         });
-        // Catat waktu run terakhir & mulai cooldown
+        // Catat waktu run terakhir & mulai cooldown (progress bar-nya otomatis animasi dari cooldownRemaining)
         localStorage.setItem(AUDIT_COOLDOWN_STORAGE_KEY, String(Date.now()));
         setCooldownRemaining(Math.ceil(AUDIT_COOLDOWN_MS / 1000));
       } else {
@@ -222,25 +222,36 @@ export const AIAuditView: React.FC<AIAuditViewProps> = ({
           <button
             onClick={handleRunAudit}
             disabled={loadingAudit || cooldownRemaining > 0}
-            className="bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white font-bold text-sm px-6 py-3.5 rounded-2xl shadow-lg shadow-purple-500/25 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed active:scale-95 flex-shrink-0"
+            className="relative bg-gradient-to-r from-purple-500 to-indigo-500 hover:from-purple-400 hover:to-indigo-400 text-white font-bold text-sm px-6 py-3.5 rounded-2xl shadow-lg shadow-purple-500/25 transition flex items-center justify-center gap-2 cursor-pointer disabled:opacity-70 disabled:cursor-not-allowed active:scale-95 flex-shrink-0 overflow-hidden"
             title={cooldownRemaining > 0 ? `Tunggu ${cooldownRemaining} detik lagi biar kuota AI nggak boros` : undefined}
           >
-            {loadingAudit ? (
-              <>
-                <RefreshCw className="w-5 h-5 animate-spin" />
-                <span>Memproses Audit AI...</span>
-              </>
-            ) : cooldownRemaining > 0 ? (
-              <>
-                <Clock className="w-5 h-5" />
-                <span>Coba lagi {Math.floor(cooldownRemaining / 60)}:{String(cooldownRemaining % 60).padStart(2, '0')}</span>
-              </>
-            ) : (
-              <>
-                <BrainCircuit className="w-5 h-5" />
-                <span>Audit Kas Sekarang</span>
-              </>
+            {cooldownRemaining > 0 && (
+              <div
+                className="absolute inset-0 bg-white/15 origin-left"
+                style={{
+                  transform: `scaleX(${1 - cooldownRemaining / (AUDIT_COOLDOWN_MS / 1000)})`,
+                  transition: 'transform 1s linear',
+                }}
+              />
             )}
+            <span className="relative flex items-center justify-center gap-2">
+              {loadingAudit ? (
+                <>
+                  <RefreshCw className="w-5 h-5 animate-spin" />
+                  <span>Memproses Audit AI...</span>
+                </>
+              ) : cooldownRemaining > 0 ? (
+                <>
+                  <Clock className="w-5 h-5 animate-pulse" />
+                  <span>Coba lagi {Math.floor(cooldownRemaining / 60)}:{String(cooldownRemaining % 60).padStart(2, '0')}</span>
+                </>
+              ) : (
+                <>
+                  <BrainCircuit className="w-5 h-5" />
+                  <span>Audit Kas Sekarang</span>
+                </>
+              )}
+            </span>
           </button>
         </div>
       </div>

@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Member, OrganizationSettings, Transaction } from '../types';
 import { formatRupiah } from '../utils/formatters';
 import { computeMemberDuesLedger } from '../utils/dues';
@@ -95,6 +95,17 @@ export const MembersDuesView: React.FC<MembersDuesViewProps> = ({
   const filteredMembers = members.filter((m) =>
     m.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     m.role.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const ITEMS_PER_PAGE = 15;
+  const [currentPage, setCurrentPage] = useState(1);
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, activeMonth]);
+  const totalPages = Math.max(1, Math.ceil(filteredMembers.length / ITEMS_PER_PAGE));
+  const paginatedMembers = filteredMembers.slice(
+    (currentPage - 1) * ITEMS_PER_PAGE,
+    currentPage * ITEMS_PER_PAGE
   );
 
   // Statistics for selected active month
@@ -288,7 +299,7 @@ export const MembersDuesView: React.FC<MembersDuesViewProps> = ({
               </thead>
 
               <tbody className="divide-y divide-white/5">
-                {filteredMembers.map((member) => {
+                {paginatedMembers.map((member) => {
                   const isPaidInActiveMonth = member.duesPaidMonths.includes(activeMonth);
                   const isExpanded = expandedMemberId === member.id;
                   const monthTransactions = getMemberMonthTransactions(member, activeMonth);
@@ -483,6 +494,33 @@ export const MembersDuesView: React.FC<MembersDuesViewProps> = ({
                 })}
               </tbody>
             </table>
+
+            {/* Pagination Controls */}
+            {filteredMembers.length > ITEMS_PER_PAGE && (
+              <div className="flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 border-t border-white/10 flex-wrap">
+                <p className="text-[11px] text-slate-500">
+                  Halaman <span className="text-white font-bold">{currentPage}</span> dari{' '}
+                  <span className="text-white font-bold">{totalPages}</span> ({filteredMembers.length} siswa)
+                </p>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                    disabled={currentPage === 1}
+                    className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs font-semibold text-slate-300 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                  >
+                    ← Prev
+                  </button>
+                  <span className="text-xs font-mono-tech text-slate-400 px-2">{currentPage}/{totalPages}</span>
+                  <button
+                    onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                    disabled={currentPage === totalPages}
+                    className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs font-semibold text-slate-300 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                  >
+                    Next →
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 

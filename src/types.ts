@@ -39,6 +39,11 @@ export interface BudgetItem {
   period: string;
 }
 
+export interface AdminAccount {
+  name: string;
+  pin: string;
+}
+
 export interface OrganizationSettings {
   name: string;
   tagline: string;
@@ -50,6 +55,7 @@ export interface OrganizationSettings {
   treasurerName: string;
   treasurerPhone: string;
   adminPin?: string;
+  admins?: AdminAccount[];
 }
 
 export interface AIAuditReport {
@@ -79,5 +85,13 @@ export interface AdminLoginLog {
   status: 'Berhasil' | 'Gagal (PIN Salah)';
   deviceInfo: string;
   ipAddress?: string;
+}
+
+export interface AuditLogEntry {
+  id: string;
+  timestamp: string; // ISO string
+  actor: string; // nama admin yang melakukan aksi, atau "Sistem"
+  action: string; // judul singkat aksi, misal "Tambah Transaksi"
+  detail: string; // penjelasan singkat
 }
 

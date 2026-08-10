@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Transaction, TransactionType } from '../types';
 import { formatRupiah, formatDateIndonesian, exportToCSV } from '../utils/formatters';
@@ -54,6 +54,8 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
   const [paymentFilter, setPaymentFilter] = useState('semua');
   const [verifyFilter, setVerifyFilter] = useState<'semua' | 'verified' | 'pending'>('semua');
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'highest'>('newest');
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 15;
 
   // Available categories for dropdown
   const allCategories = useMemo(() => {
@@ -87,6 +89,17 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
         return 0;
       });
   }, [transactions, searchTerm, typeFilter, categoryFilter, paymentFilter, verifyFilter, sortBy]);
+
+  // Reset ke halaman 1 setiap kali filter/pencarian berubah
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, typeFilter, categoryFilter, paymentFilter, verifyFilter, sortBy]);
+
+  const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE));
+  const paginatedTransactions = useMemo(() => {
+    const start = (currentPage - 1) * ITEMS_PER_PAGE;
+    return filteredTransactions.slice(start, start + ITEMS_PER_PAGE);
+  }, [filteredTransactions, currentPage]);
 
   // Filter totals
   const filteredVerifiedIncome = filteredTransactions
@@ -346,8 +359,8 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
             </thead>
 
             <tbody className="divide-y divide-white/5">
-              {filteredTransactions.length > 0 ? (
-                filteredTransactions.map((tx) => (
+              {paginatedTransactions.length > 0 ? (
+                paginatedTransactions.map((tx) => (
                   <tr key={tx.id} className="hover:bg-white/10 transition">
                     
                     {/* Date */}
@@ -490,6 +503,33 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
             </tbody>
           </table>
         </div>
+
+        {/* Pagination Controls */}
+        {filteredTransactions.length > ITEMS_PER_PAGE && (
+          <div className="no-print flex items-center justify-between gap-3 px-4 sm:px-5 py-3.5 border-t border-white/10 flex-wrap">
+            <p className="text-[11px] text-slate-500">
+              Halaman <span className="text-white font-bold">{currentPage}</span> dari{' '}
+              <span className="text-white font-bold">{totalPages}</span> ({filteredTransactions.length} transaksi)
+            </p>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                disabled={currentPage === 1}
+                className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs font-semibold text-slate-300 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+              >
+                ← Prev
+              </button>
+              <span className="text-xs font-mono-tech text-slate-400 px-2">{currentPage}/{totalPages}</span>
+              <button
+                onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                disabled={currentPage === totalPages}
+                className="px-3 py-1.5 rounded-xl bg-white/5 border border-white/10 text-xs font-semibold text-slate-300 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+              >
+                Next →
+              </button>
+            </div>
+          </div>
+        )}
       </div>
 
     </div>

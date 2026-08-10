@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { motion } from 'motion/react';
 import { Transaction, TransactionType } from '../types';
 import { formatRupiah, formatDateIndonesian, exportToCSV } from '../utils/formatters';
@@ -20,12 +20,18 @@ import {
   CreditCard,
   Clock,
   ShieldCheck,
-  Share2
+  Share2,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  Layers
 } from 'lucide-react';
 
 interface TransactionsViewProps {
   transactions: Transaction[];
   isAdmin?: boolean;
+  initialVerifyFilter?: 'semua' | 'verified' | 'pending';
   onOpenAdminLogin?: () => void;
   onOpenStudentPay?: () => void;
   onOpenAddTx: () => void;
@@ -39,6 +45,7 @@ interface TransactionsViewProps {
 export const TransactionsView: React.FC<TransactionsViewProps> = ({
   transactions,
   isAdmin = false,
+  initialVerifyFilter = 'semua',
   onOpenAdminLogin,
   onOpenStudentPay,
   onOpenAddTx,
@@ -52,8 +59,24 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
   const [typeFilter, setTypeFilter] = useState<'semua' | TransactionType>('semua');
   const [categoryFilter, setCategoryFilter] = useState('semua');
   const [paymentFilter, setPaymentFilter] = useState('semua');
-  const [verifyFilter, setVerifyFilter] = useState<'semua' | 'verified' | 'pending'>('semua');
+  const [verifyFilter, setVerifyFilter] = useState<'semua' | 'verified' | 'pending'>(initialVerifyFilter);
   const [sortBy, setSortBy] = useState<'newest' | 'oldest' | 'highest'>('newest');
+
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
+  const [pageSize, setPageSize] = useState(15);
+
+  // Sync verifyFilter if initialVerifyFilter prop changes
+  useEffect(() => {
+    if (initialVerifyFilter) {
+      setVerifyFilter(initialVerifyFilter);
+    }
+  }, [initialVerifyFilter]);
+
+  // Reset to page 1 whenever filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, typeFilter, categoryFilter, paymentFilter, verifyFilter, sortBy, pageSize]);
 
   // Available categories for dropdown
   const allCategories = useMemo(() => {
@@ -87,6 +110,14 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
         return 0;
       });
   }, [transactions, searchTerm, typeFilter, categoryFilter, paymentFilter, verifyFilter, sortBy]);
+
+  // Paginated Transactions calculation
+  const totalPages = Math.max(1, Math.ceil(filteredTransactions.length / pageSize));
+
+  const paginatedTransactions = useMemo(() => {
+    const startIdx = (currentPage - 1) * pageSize;
+    return filteredTransactions.slice(startIdx, startIdx + pageSize);
+  }, [filteredTransactions, currentPage, pageSize]);
 
   // Filter totals
   const filteredVerifiedIncome = filteredTransactions
@@ -346,8 +377,8 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
             </thead>
 
             <tbody className="divide-y divide-white/5">
-              {filteredTransactions.length > 0 ? (
-                filteredTransactions.map((tx) => (
+              {paginatedTransactions.length > 0 ? (
+                paginatedTransactions.map((tx) => (
                   <tr key={tx.id} className="hover:bg-white/10 transition">
                     
                     {/* Date */}
@@ -489,6 +520,70 @@ export const TransactionsView: React.FC<TransactionsViewProps> = ({
               )}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination Bar */}
+        <div className="bg-white/5 border-t border-white/10 px-4 py-3.5 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs no-print">
+          <div className="flex items-center gap-3 text-slate-400">
+            <span>
+              Menampilkan <strong className="text-white">{filteredTransactions.length === 0 ? 0 : (currentPage - 1) * pageSize + 1}</strong> - <strong className="text-white">{Math.min(currentPage * pageSize, filteredTransactions.length)}</strong> dari <strong className="text-amber-400">{filteredTransactions.length}</strong> transaksi
+            </span>
+
+            <div className="flex items-center gap-1.5 pl-3 border-l border-white/10">
+              <span className="text-[11px] text-slate-400">Tampilkan:</span>
+              <select
+                value={pageSize}
+                onChange={(e) => setPageSize(Number(e.target.value))}
+                className="bg-slate-900 border border-white/10 text-white rounded-lg px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-amber-500 font-bold"
+              >
+                <option value={10}>10</option>
+                <option value={15}>15</option>
+                <option value={25}>25</option>
+                <option value={50}>50</option>
+                <option value={100}>100</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={() => setCurrentPage(1)}
+              disabled={currentPage === 1}
+              className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+              title="Halaman Pertama"
+            >
+              <ChevronsLeft className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              disabled={currentPage === 1}
+              className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+              title="Halaman Sebelumnya"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+
+            <div className="px-3 py-1 bg-amber-500/10 border border-amber-500/30 rounded-lg text-amber-300 font-mono font-bold text-xs">
+              Hal {currentPage} / {totalPages}
+            </div>
+
+            <button
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              disabled={currentPage === totalPages}
+              className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+              title="Halaman Selanjutnya"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+            <button
+              onClick={() => setCurrentPage(totalPages)}
+              disabled={currentPage === totalPages}
+              className="p-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-300 hover:bg-white/10 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+              title="Halaman Terakhir"
+            >
+              <ChevronsRight className="w-4 h-4" />
+            </button>
+          </div>
         </div>
       </div>
 

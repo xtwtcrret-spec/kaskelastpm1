@@ -4,8 +4,9 @@ import { X, Lock, KeyRound, ShieldAlert, CheckCircle2, Eye, EyeOff } from 'lucid
 interface AdminLoginModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onLoginSuccess: () => void;
+  onLoginSuccess: (adminName: string) => void;
   currentPin: string;
+  admins?: { name: string; pin: string }[];
 }
 
 export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
@@ -13,6 +14,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
   onClose,
   onLoginSuccess,
   currentPin,
+  admins = [],
 }) => {
   const [pinInput, setPinInput] = useState('');
   const [errorMsg, setErrorMsg] = useState('');
@@ -22,11 +24,24 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    const targetPin = currentPin || '262009';
-    if (pinInput.trim() === targetPin) {
+    const trimmed = pinInput.trim();
+
+    // Cek dulu ke daftar multi-admin (kalau ada)
+    const matchedAdmin = admins.find((a) => a.pin === trimmed);
+    if (matchedAdmin) {
       setErrorMsg('');
       setPinInput('');
-      onLoginSuccess();
+      onLoginSuccess(matchedAdmin.name);
+      onClose();
+      return;
+    }
+
+    // Fallback: PIN utama lama (biar nggak breaking buat yang belum setup multi-admin)
+    const targetPin = currentPin || '262009';
+    if (trimmed === targetPin) {
+      setErrorMsg('');
+      setPinInput('');
+      onLoginSuccess('Admin');
       onClose();
     } else {
       setErrorMsg('PIN / Password Admin salah. Silakan coba lagi.');

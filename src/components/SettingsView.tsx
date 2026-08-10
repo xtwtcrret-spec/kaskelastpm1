@@ -30,8 +30,10 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       onOpenAdminLogin();
       return;
     }
-    // Buang baris admin yang nama/PIN-nya kosong (belum keisi lengkap)
-    const cleanedAdmins = (formData.admins || []).filter((a) => a.name.trim() && a.pin.trim());
+    // Buang baris admin yang nama/PIN-nya kosong, dan trim spasi biar PIN pas login nggak meleset
+    const cleanedAdmins = (formData.admins || [])
+      .map((a) => ({ name: a.name.trim(), pin: a.pin.trim() }))
+      .filter((a) => a.name && a.pin);
     onUpdateSettings({ ...formData, admins: cleanedAdmins });
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2500);

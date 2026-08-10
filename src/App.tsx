@@ -179,6 +179,7 @@ export default function App() {
         .eq('id', KAS_ROW_ID);
       if (error) {
         console.error('Gagal menyimpan data kas ke Supabase:', error);
+        showToast('Gagal menyimpan perubahan ke database! Cek koneksi internet & coba lagi.', 'error');
       }
     }, 400); // debounce biar nggak spam request tiap ketikan
     return () => clearTimeout(timeout);

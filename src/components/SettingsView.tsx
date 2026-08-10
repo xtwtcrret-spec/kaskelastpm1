@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { OrganizationSettings } from '../types';
-import { Settings as SettingsIcon, Save, Download, Upload, RotateCcw, CheckCircle, Lock, ShieldAlert } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Download, Upload, RotateCcw, CheckCircle, Lock, ShieldAlert, Users, Plus, Trash2, KeyRound, UserCheck } from 'lucide-react';
+import { parseAdminAccounts, serializeAdminAccounts, AdminAccount } from '../utils/admin';
 
 interface SettingsViewProps {
   settings: OrganizationSettings;
@@ -23,6 +24,35 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
 }) => {
   const [formData, setFormData] = useState<OrganizationSettings>(settings);
   const [saveSuccess, setSaveSuccess] = useState(false);
+
+  // Multi-Admin state parsed from formData.adminPin
+  const adminAccounts = parseAdminAccounts(formData.adminPin, formData.treasurerName);
+  const [newAdminName, setNewAdminName] = useState('');
+  const [newAdminRole, setNewAdminRole] = useState('Bendahara 2');
+  const [newAdminPin, setNewAdminPin] = useState('');
+
+  const handleAddAdmin = () => {
+    if (!newAdminName.trim() || !newAdminPin.trim()) return;
+    const newAcc: AdminAccount = {
+      id: String(Date.now()),
+      name: newAdminName.trim(),
+      role: newAdminRole.trim() || 'Bendahara',
+      pin: newAdminPin.trim(),
+    };
+    const updated = [...adminAccounts, newAcc];
+    setFormData({ ...formData, adminPin: serializeAdminAccounts(updated) });
+    setNewAdminName('');
+    setNewAdminPin('');
+  };
+
+  const handleRemoveAdmin = (id: string) => {
+    if (adminAccounts.length <= 1) {
+      alert('Minimal harus ada 1 Admin Bendahara terdaftar.');
+      return;
+    }
+    const updated = adminAccounts.filter((a) => a.id !== id);
+    setFormData({ ...formData, adminPin: serializeAdminAccounts(updated) });
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -130,24 +160,90 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               />
             </div>
 
-            <div>
-              <label className="block text-slate-300 font-semibold mb-1.5">
-                PIN Admin / Bendahara {isAdmin ? '' : '(Rahasia)'}
-              </label>
-              {isAdmin ? (
-                <input
-                  type="text"
-                  value={formData.adminPin || '262009'}
-                  onChange={(e) => setFormData({ ...formData, adminPin: e.target.value })}
-                  placeholder="PIN Keamanan Admin"
-                  className="w-full p-3 rounded-2xl border border-white/10 bg-white/5 text-indigo-300 font-mono font-bold focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                />
-              ) : (
-                <div className="w-full p-3 rounded-2xl border border-white/10 bg-slate-900/60 text-slate-400 font-mono font-bold flex items-center justify-between">
-                  <span>••••••</span>
-                  <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 font-sans font-medium">
-                    Terproteksi (Hanya Admin)
-                  </span>
+            <div className="sm:col-span-2 space-y-3 bg-white/5 p-4 rounded-2xl border border-white/10">
+              <div className="flex items-center justify-between">
+                <label className="text-slate-200 font-bold text-xs flex items-center gap-2">
+                  <Users className="w-4 h-4 text-amber-400" />
+                  <span>Daftar Multi-Admin Bendahara & PIN Access</span>
+                </label>
+                <span className="text-[10px] text-amber-400 bg-amber-500/10 px-2 py-0.5 rounded-full border border-amber-500/20 font-mono font-bold">
+                  {adminAccounts.length} Admin Aktif
+                </span>
+              </div>
+
+              {/* List of current admins */}
+              <div className="space-y-2">
+                {adminAccounts.map((acc) => (
+                  <div key={acc.id} className="flex items-center justify-between bg-slate-900/80 p-3 rounded-xl border border-white/10 text-xs">
+                    <div className="flex items-center gap-2.5">
+                      <div className="w-7 h-7 rounded-lg bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center font-bold">
+                        <UserCheck className="w-4 h-4" />
+                      </div>
+                      <div>
+                        <p className="font-bold text-white flex items-center gap-1.5">
+                          <span>{acc.name}</span>
+                          <span className="text-[10px] font-mono text-amber-300 bg-amber-500/20 px-1.5 py-0.2 rounded">
+                            {acc.role}
+                          </span>
+                        </p>
+                        <p className="text-[10px] text-slate-400 font-mono">
+                          PIN: {isAdmin ? <strong className="text-emerald-400">{acc.pin}</strong> : '••••••'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {isAdmin && adminAccounts.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveAdmin(acc.id)}
+                        className="p-1.5 text-rose-400 hover:bg-rose-500/20 rounded-lg transition cursor-pointer"
+                        title="Hapus Admin Ini"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* Add New Admin Form */}
+              {isAdmin && (
+                <div className="pt-2 border-t border-white/10 space-y-2">
+                  <p className="text-[11px] font-bold text-slate-300">+ Tambah Admin Baru / Wali Kelas</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                    <input
+                      type="text"
+                      placeholder="Nama Admin (mis. Bagas)"
+                      value={newAdminName}
+                      onChange={(e) => setNewAdminName(e.target.value)}
+                      className="p-2.5 rounded-xl border border-white/10 bg-slate-900 text-white text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Jabatan (mis. Bendahara 2 / Wali Kelas)"
+                      value={newAdminRole}
+                      onChange={(e) => setNewAdminRole(e.target.value)}
+                      className="p-2.5 rounded-xl border border-white/10 bg-slate-900 text-white text-xs focus:outline-none focus:ring-1 focus:ring-amber-500"
+                    />
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        placeholder="PIN Baru"
+                        value={newAdminPin}
+                        onChange={(e) => setNewAdminPin(e.target.value)}
+                        className="p-2.5 rounded-xl border border-white/10 bg-slate-900 text-amber-300 font-mono font-bold text-xs w-full focus:outline-none focus:ring-1 focus:ring-amber-500"
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAddAdmin}
+                        disabled={!newAdminName.trim() || !newAdminPin.trim()}
+                        className="px-3 py-2 bg-amber-500 hover:bg-amber-400 disabled:opacity-50 text-slate-950 font-extrabold rounded-xl text-xs flex-shrink-0 cursor-pointer flex items-center gap-1"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Tambah</span>
+                      </button>
+                    </div>
+                  </div>
                 </div>
               )}
             </div>

@@ -85,7 +85,7 @@ export default function App() {
     const entry: AuditLogEntry = {
       id: generateId('log'),
       timestamp: new Date().toISOString(),
-      actor: isAdmin ? (settings.treasurerName || 'Admin Bendahara') : 'Sistem',
+      actor: isAdmin ? (currentAdminName || settings.treasurerName || 'Admin Bendahara') : 'Siswa / Umum',
       action,
       detail,
     };
@@ -108,30 +108,53 @@ export default function App() {
   useEffect(() => {
     let isMounted = true;
     (async () => {
-      const { data, error } = await supabase
-        .from('kas_data')
-        .select('*')
-        .eq('id', KAS_ROW_ID)
-        .maybeSingle();
+      try {
+        const { data, error } = await supabase
+          .from('kas_data')
+          .select('*')
+          .eq('id', KAS_ROW_ID)
+          .maybeSingle();
 
-      if (!isMounted) return;
+        if (!isMounted) return;
 
-      if (error) {
-        console.error('Gagal memuat data kas dari Supabase:', error);
-        setDataLoadError(
-          'Gagal terhubung ke database bersama. Cek koneksi internet atau konfigurasi Supabase.'
-        );
-      } else if (data) {
-        isApplyingRemoteRef.current = true;
-        if (data.settings && Object.keys(data.settings).length > 0) setSettings(data.settings);
-        if (data.members) setMembers(data.members);
-        if (data.transactions) setTransactions(data.transactions);
-        if (data.budgets) setBudgets(data.budgets);
-        if (data.audit_log) setAuditLog(data.audit_log);
+        if (error) {
+          console.warn('Gagal memuat data kas dari Supabase:', error);
+          setDataLoadError(
+            'Database bersama belum siap (tabel kas_data belum dibuat/RLS). Menggunakan mode data lokal.'
+          );
+        } else if (data) {
+          isApplyingRemoteRef.current = true;
+          if (data.settings && Object.keys(data.settings).length > 0) setSettings(data.settings);
+          if (data.members) setMembers(data.members);
+          if (data.transactions) setTransactions(data.transactions);
+          if (data.budgets) setBudgets(data.budgets);
+          if (data.audit_log) setAuditLog(data.audit_log);
+          setDataLoadError(null);
+        } else {
+          // Otomatis buat baris kas_data id=1 jika tabel sudah ada tapi belum ada barisnya
+          const { error: insertError } = await supabase.from('kas_data').upsert({
+            id: KAS_ROW_ID,
+            settings: initialSettings,
+            members: initialMembers,
+            transactions: initialTransactions,
+            budgets: initialBudgets,
+            audit_log: [],
+            updated_at: new Date().toISOString(),
+          });
+          if (insertError) {
+            console.warn('Inisialisasi kas_data awal di Supabase:', insertError);
+          }
+          setDataLoadError(null);
+        }
+      } catch (err) {
+        console.warn('Terjadi kesalahan koneksi Supabase:', err);
+        setDataLoadError('Gagal terhubung ke Supabase. Menggunakan mode data lokal.');
+      } finally {
+        if (isMounted) {
+          hasLoadedRef.current = true;
+          setIsLoadingData(false);
+        }
       }
-
-      hasLoadedRef.current = true;
-      setIsLoadingData(false);
     })();
 
     // Dengarkan perubahan data secara live dari device/browser lain
@@ -190,8 +213,12 @@ export default function App() {
 
   // RBAC Role State
   const [isAdmin, setIsAdmin] = useState(false);
+  const [currentAdminName, setCurrentAdminName] = useState<string>('');
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
   const [isStudentPayOpen, setIsStudentPayOpen] = useState(false);
+
+  // Filter Transactions State
+  const [transactionsVerifyFilter, setTransactionsVerifyFilter] = useState<'semua' | 'verified' | 'pending'>('semua');
 
   // Modal States
   const [isTxModalOpen, setIsTxModalOpen] = useState(false);
@@ -217,6 +244,17 @@ export default function App() {
     .reduce((sum, t) => sum + t.amount, 0);
 
   const totalBalance = totalIncome - totalExpense;
+
+  // Pending Transactions calculation
+  const pendingCount = transactions.filter((t) => !t.verified).length;
+  const pendingAmount = transactions
+    .filter((t) => !t.verified && t.type === 'pemasukan')
+    .reduce((sum, t) => sum + t.amount, 0);
+
+  const handleFilterPending = () => {
+    setActiveTab('transactions');
+    setTransactionsVerifyFilter('pending');
+  };
 
   // Transaction Handlers
   const handleSaveTransaction = (txData: Omit<Transaction, 'id'>) => {
@@ -529,7 +567,12 @@ export default function App() {
   // Navigation Links
   const navTabs = [
     { id: 'dashboard', label: 'Dashboard Utama', icon: LayoutDashboard },
-    { id: 'transactions', label: 'Buku Kas & Transaksi', icon: BookOpen },
+    { 
+      id: 'transactions', 
+      label: 'Buku Kas & Transaksi', 
+      icon: BookOpen,
+      badge: pendingCount > 0 ? `${pendingCount} Pending` : undefined,
+    },
     { id: 'members', label: 'Iuran Anggota', icon: Users },
     { id: 'ai-audit', label: 'AI Audit & Smart Parser', icon: Bot, badge: 'Gemini' },
     { id: 'rab', label: 'RAB Anggaran', icon: Target },
@@ -587,21 +630,24 @@ export default function App() {
     );
   }
 
-  if (dataLoadError) {
-    return (
-      <div className="min-h-screen bg-[#080c14] text-slate-100 font-sans flex items-center justify-center p-6">
-        <div className="max-w-md text-center space-y-3">
-          <p className="text-red-400 font-semibold">{dataLoadError}</p>
-          <p className="text-slate-500 text-sm">
-            Pastikan VITE_SUPABASE_URL dan VITE_SUPABASE_ANON_KEY sudah diatur dengan benar, dan tabel `kas_data` sudah dibuat di Supabase.
-          </p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-[#080c14] text-slate-100 font-sans flex flex-col antialiased relative overflow-x-hidden selection:bg-amber-500 selection:text-slate-950">
+      
+      {/* Non-blocking Notice Banner if Supabase setup or connection needs attention */}
+      {dataLoadError && (
+        <div className="bg-amber-500/15 border-b border-amber-500/30 px-4 py-2.5 text-xs text-amber-200 flex items-center justify-between z-30 no-print">
+          <div className="flex items-center gap-2 max-w-7xl mx-auto w-full">
+            <span className="font-bold">⚠️ Info Database:</span>
+            <span>{dataLoadError}</span>
+          </div>
+          <button
+            onClick={() => setDataLoadError(null)}
+            className="text-amber-400 hover:text-white text-xs font-bold px-2 py-0.5 rounded border border-amber-500/30 hover:bg-amber-500/20 cursor-pointer flex-shrink-0"
+          >
+            Tutup
+          </button>
+        </div>
+      )}
       
       {/* Background Blueprint Grid & Ambient Glowing Machine Orbs */}
       <div className="fixed inset-0 bg-blueprint-grid opacity-25 pointer-events-none z-0" />
@@ -614,8 +660,16 @@ export default function App() {
         settings={settings}
         totalBalance={totalBalance}
         isAdmin={isAdmin}
+        currentAdminName={currentAdminName}
+        pendingCount={pendingCount}
+        pendingAmount={pendingAmount}
+        onFilterPending={handleFilterPending}
         onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
-        onLogoutAdmin={() => setIsAdmin(false)}
+        onLogoutAdmin={() => {
+          setIsAdmin(false);
+          setCurrentAdminName('');
+          showToast('Anda telah keluar dari mode admin.', 'info');
+        }}
         onOpenStudentPay={() => setIsStudentPayOpen(true)}
         onOpenAddTx={() => {
           setEditingTx(null);
@@ -776,6 +830,7 @@ export default function App() {
               <TransactionsView
                 transactions={transactions}
                 isAdmin={isAdmin}
+                initialVerifyFilter={transactionsVerifyFilter}
                 onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
                 onOpenStudentPay={() => setIsStudentPayOpen(true)}
                 onOpenAddTx={() => {
@@ -884,8 +939,12 @@ export default function App() {
       <AdminLoginModal
         isOpen={isAdminLoginOpen}
         onClose={() => setIsAdminLoginOpen(false)}
-        onLoginSuccess={() => setIsAdmin(true)}
-        currentPin={settings.adminPin || '262009'}
+        onLoginSuccess={(adminName) => {
+          setIsAdmin(true);
+          setCurrentAdminName(adminName);
+          showToast(`Berhasil masuk sebagai ${adminName}`, 'success');
+        }}
+        settings={settings}
       />
 
       <StudentPaymentModal
@@ -933,20 +992,29 @@ export default function App() {
             isOpen={!!deletingTxId}
             onClose={() => setDeletingTxId(null)}
             onConfirm={executeDeleteTransaction}
-            title="Hapus Transaksi Kas"
-            message="Apakah Anda yakin ingin menghapus catatan transaksi ini? Data transaksi akan dihapus secara permanen dari buku kas."
+            title="Konfirmasi Hapus Transaksi Kas"
+            message="Apakah Anda benar-benar yakin ingin menghapus catatan transaksi ini dari pembukuan kas? Tindakan ini tidak dapat dibatalkan dan akan dicatat di Audit Log Transparansi."
             details={
               targetTx ? (
-                <div className="space-y-1 font-mono text-[11px]">
-                  <div><strong className="text-white">Jenis:</strong> <span className={targetTx.type === 'pemasukan' ? 'text-emerald-400 font-bold' : 'text-rose-400 font-bold'}>{targetTx.type.toUpperCase()}</span></div>
+                <div className="space-y-1.5 font-mono text-[11px] bg-slate-950/80 p-3.5 rounded-2xl border border-rose-500/30">
+                  <div className="flex items-center justify-between pb-1.5 border-b border-white/10 font-sans">
+                    <span className="text-slate-400 font-medium">Jenis Transaksi:</span>
+                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold ${targetTx.type === 'pemasukan' ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/30' : 'bg-rose-500/20 text-rose-400 border border-rose-500/30'}`}>
+                      {targetTx.type.toUpperCase()}
+                    </span>
+                  </div>
                   <div><strong className="text-white">Deskripsi:</strong> {targetTx.description}</div>
-                  {targetTx.contributor && <div><strong className="text-white">Oleh/Penyetor:</strong> {targetTx.contributor}</div>}
-                  <div><strong className="text-white">Jumlah:</strong> Rp {targetTx.amount.toLocaleString('id-ID')}</div>
+                  {targetTx.contributor && <div><strong className="text-white">Penyetor / Pihak:</strong> {targetTx.contributor}</div>}
+                  <div><strong className="text-white">Nominal:</strong> <span className="text-amber-300 font-bold">Rp {targetTx.amount.toLocaleString('id-ID')}</span></div>
+                  <div><strong className="text-white">Status Verifikasi:</strong> {targetTx.verified ? <span className="text-emerald-400 font-bold">Terverifikasi</span> : <span className="text-amber-400 font-bold">Pending (Belum Diverifikasi)</span>}</div>
                   <div><strong className="text-white">Tanggal:</strong> {targetTx.date}</div>
+                  <div className="pt-1.5 border-t border-white/10 text-[10px] text-rose-300 font-sans">
+                    ⚠️ <strong>Dampak:</strong> Menghapus transaksi ini akan menyesuaikan saldo kas resmi & dicatat oleh <strong>{currentAdminName || settings.treasurerName || 'Admin'}</strong> di Audit Log.
+                  </div>
                 </div>
               ) : null
             }
-            confirmText="Ya, Hapus Transaksi"
+            confirmText="Ya, Hapus Permanen"
           />
         );
       })()}

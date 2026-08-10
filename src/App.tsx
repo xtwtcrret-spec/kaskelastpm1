@@ -15,6 +15,7 @@ import {
 } from './data/initialData';
 import { supabase, KAS_ROW_ID } from './lib/supabaseClient';
 import { computeMemberDuesLedger } from './utils/dues';
+import { ToastContainer, ToastItem } from './components/ToastContainer';
 
 // ID unik anti-tabrakan — sebelumnya pakai Date.now() doang, yang bisa
 // menghasilkan ID SAMA kalau 2+ data dibuat dalam milidetik yang sama
@@ -56,7 +57,8 @@ import {
   Settings as SettingsIcon,
   Sparkles,
   ShieldCheck,
-  History
+  History,
+  MoreHorizontal
 } from 'lucide-react';
 
 export default function App() {
@@ -67,6 +69,16 @@ export default function App() {
   const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);
   const [budgets, setBudgets] = useState<BudgetItem[]>(initialBudgets);
   const [auditLog, setAuditLog] = useState<AuditLogEntry[]>([]);
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+
+  const showToast = (message: string, type: ToastItem['type'] = 'success') => {
+    const id = generateId('toast');
+    setToasts((prev) => [...prev, { id, message, type }]);
+  };
+
+  const dismissToast = (id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
 
   // Catat 1 baris riwayat perubahan (audit log), dilihat semua orang biar transparan
   const logAction = (action: string, detail: string) => {
@@ -84,6 +96,7 @@ export default function App() {
     setAuditLog([]);
     // Catat 1 entri baru setelah dibersihkan, biar tetap ada jejak transparansi kapan & oleh siapa log dikosongkan
     logAction('Bersihkan Log', 'Seluruh riwayat perubahan sebelumnya dikosongkan oleh Admin');
+    showToast('Riwayat perubahan berhasil dibersihkan', 'success');
   };
 
   const [isLoadingData, setIsLoadingData] = useState(true);
@@ -173,6 +186,7 @@ export default function App() {
 
 
   const [activeTab, setActiveTab] = useState<string>('dashboard');
+  const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
 
   // RBAC Role State
   const [isAdmin, setIsAdmin] = useState(false);
@@ -223,6 +237,7 @@ export default function App() {
         'Edit Transaksi',
         `${txData.type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'} "${txData.description}" diubah menjadi Rp ${txData.amount.toLocaleString('id-ID')}`
       );
+      showToast('Transaksi berhasil diubah', 'success');
     } else {
       const newTx: Transaction = {
         ...txData,
@@ -232,6 +247,10 @@ export default function App() {
       logAction(
         txData.type === 'pemasukan' ? 'Tambah Pemasukan' : 'Tambah Pengeluaran',
         `"${txData.description}" sebesar Rp ${txData.amount.toLocaleString('id-ID')} (${txData.contributor})`
+      );
+      showToast(
+        txData.type === 'pemasukan' ? 'Pemasukan berhasil dicatat' : 'Pengeluaran berhasil dicatat',
+        'success'
       );
     }
     setEditingTx(null);
@@ -254,6 +273,7 @@ export default function App() {
         'Hapus Transaksi',
         `"${targetTx.description}" sebesar Rp ${targetTx.amount.toLocaleString('id-ID')} (${targetTx.contributor})`
       );
+      showToast('Transaksi berhasil dihapus', 'success');
     }
 
     // Kalau transaksi yang dihapus itu terverifikasi & terkait iuran anggota,
@@ -305,6 +325,7 @@ export default function App() {
         nextVerified ? 'Verifikasi Transaksi' : 'Batalkan Verifikasi',
         `"${targetTx.description}" sebesar Rp ${targetTx.amount.toLocaleString('id-ID')} (${targetTx.contributor})`
       );
+      showToast(nextVerified ? 'Transaksi terverifikasi' : 'Verifikasi dibatalkan', 'success');
 
       if (targetMemberId) {
         // Hitung ulang status lunas SEMUA bulan untuk anggota ini pakai sistem ledger
@@ -336,6 +357,7 @@ export default function App() {
         prev.map((m) => (m.id === existingId ? { ...m, ...memberData } : m))
       );
       logAction('Edit Siswa', `Data "${memberData.name}" diperbarui`);
+      showToast('Data siswa berhasil diperbarui', 'success');
     } else {
       const newMember: Member = {
         ...memberData,
@@ -344,6 +366,7 @@ export default function App() {
       };
       setMembers((prev) => [...prev, newMember]);
       logAction('Tambah Siswa', `"${memberData.name}" ditambahkan ke daftar anggota`);
+      showToast(`"${memberData.name}" berhasil ditambahkan`, 'success');
     }
     setEditingMember(null);
   };
@@ -380,7 +403,10 @@ export default function App() {
     if (deletingMemberId) {
       const targetMember = members.find((m) => m.id === deletingMemberId);
       setMembers((prev) => prev.filter((m) => m.id !== deletingMemberId));
-      if (targetMember) logAction('Hapus Siswa', `"${targetMember.name}" dihapus dari daftar anggota`);
+      if (targetMember) {
+        logAction('Hapus Siswa', `"${targetMember.name}" dihapus dari daftar anggota`);
+        showToast(`"${targetMember.name}" dihapus dari daftar siswa`, 'info');
+      }
     }
     setDeletingMemberId(null);
   };
@@ -428,12 +454,16 @@ export default function App() {
     };
     setBudgets((prev) => [...prev, newBudget]);
     logAction('Tambah Anggaran (RAB)', `"${budgetData.category}" sebesar Rp ${budgetData.allocatedAmount.toLocaleString('id-ID')}`);
+    showToast(`Anggaran "${budgetData.category}" berhasil ditambahkan`, 'success');
   };
 
   const handleDeleteBudget = (id: string) => {
     const targetBudget = budgets.find((b) => b.id === id);
     setBudgets((prev) => prev.filter((b) => b.id !== id));
-    if (targetBudget) logAction('Hapus Anggaran (RAB)', `"${targetBudget.category}" dihapus`);
+    if (targetBudget) {
+      logAction('Hapus Anggaran (RAB)', `"${targetBudget.category}" dihapus`);
+      showToast(`Anggaran "${targetBudget.category}" dihapus`, 'info');
+    }
   };
 
   // Export / Import Backup
@@ -473,9 +503,10 @@ export default function App() {
           if (parsed.members) setMembers(parsed.members);
           if (parsed.transactions) setTransactions(parsed.transactions);
           if (parsed.budgets) setBudgets(parsed.budgets);
-          alert('Backup data KasKita berhasil di-import!');
+          logAction('Import Backup', 'Data kas dipulihkan dari file backup JSON');
+          showToast('Backup data berhasil di-import!', 'success');
         } catch (err) {
-          alert('File JSON backup tidak valid.');
+          showToast('File JSON backup tidak valid.', 'error');
         }
       };
     }
@@ -508,10 +539,49 @@ export default function App() {
 
   if (isLoadingData) {
     return (
-      <div className="min-h-screen bg-[#080c14] text-slate-100 font-sans flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <div className="w-10 h-10 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
-          <p className="text-slate-400 text-sm">Memuat data kas bersama...</p>
+      <div className="min-h-screen bg-[#080c14] text-slate-100 font-sans">
+        {/* Skeleton Header */}
+        <div className="bg-slate-950/80 border-b border-white/5 px-4 sm:px-6 py-4">
+          <div className="flex items-center justify-between max-w-7xl mx-auto">
+            <div className="flex items-center gap-3">
+              <div className="w-11 h-11 rounded-2xl bg-white/5 animate-pulse" />
+              <div className="space-y-2">
+                <div className="w-40 sm:w-56 h-3.5 rounded-full bg-white/5 animate-pulse" />
+                <div className="w-28 h-2.5 rounded-full bg-white/5 animate-pulse" />
+              </div>
+            </div>
+            <div className="hidden sm:flex items-center gap-2">
+              <div className="w-24 h-9 rounded-2xl bg-white/5 animate-pulse" />
+              <div className="w-24 h-9 rounded-2xl bg-white/5 animate-pulse" />
+            </div>
+          </div>
+        </div>
+
+        {/* Skeleton Nav */}
+        <div className="flex gap-2 px-4 sm:px-6 py-3 border-b border-white/5 overflow-hidden">
+          {[...Array(6)].map((_, i) => (
+            <div key={i} className="w-24 h-8 rounded-xl bg-white/5 animate-pulse flex-shrink-0" />
+          ))}
+        </div>
+
+        {/* Skeleton Content Cards */}
+        <div className="max-w-7xl mx-auto p-4 sm:p-6 space-y-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            {[...Array(3)].map((_, i) => (
+              <div key={i} className="h-24 rounded-3xl bg-white/5 animate-pulse" />
+            ))}
+          </div>
+          <div className="h-64 rounded-3xl bg-white/5 animate-pulse" />
+          <div className="space-y-2.5">
+            {[...Array(4)].map((_, i) => (
+              <div key={i} className="h-14 rounded-2xl bg-white/5 animate-pulse" />
+            ))}
+          </div>
+        </div>
+
+        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-2 bg-slate-900/90 border border-white/10 px-4 py-2.5 rounded-2xl shadow-xl">
+          <div className="w-4 h-4 border-2 border-amber-500 border-t-transparent rounded-full animate-spin" />
+          <p className="text-slate-300 text-xs font-medium">Memuat data kas bersama...</p>
         </div>
       </div>
     );
@@ -556,8 +626,8 @@ export default function App() {
         onOpenQRIS={() => setActiveTab('payment')}
       />
 
-      {/* Navigation Sub-Header - Mechanical Control Panel */}
-      <nav className="bg-slate-950/80 backdrop-blur-2xl border-b border-amber-500/20 sticky top-[77px] z-20 shadow-2xl">
+      {/* Navigation Sub-Header - Mechanical Control Panel (disembunyikan di HP, diganti bottom nav) */}
+      <nav className="hidden sm:block bg-slate-950/80 backdrop-blur-2xl border-b border-amber-500/20 sticky top-[77px] z-20 shadow-2xl">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center gap-1.5 overflow-x-auto py-2.5 scrollbar-none">
             {navTabs.map((tab) => {
@@ -595,8 +665,86 @@ export default function App() {
         </div>
       </nav>
 
+      {/* Bottom Navigation Bar — khusus tampilan HP, 4 menu utama + "Lainnya" */}
+      <nav className="no-print sm:hidden fixed bottom-0 inset-x-0 z-30 bg-slate-950/95 backdrop-blur-2xl border-t border-amber-500/20 shadow-2xl">
+        <div className="grid grid-cols-5">
+          {navTabs.slice(0, 4).map((tab) => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveTab(tab.id)}
+                className={`flex flex-col items-center justify-center gap-0.5 py-2.5 transition cursor-pointer ${
+                  isActive ? 'text-amber-400' : 'text-slate-500'
+                }`}
+              >
+                <Icon className="w-5 h-5" />
+                <span className="text-[9px] font-bold leading-none text-center px-0.5">{tab.label.split(' ')[0]}</span>
+              </button>
+            );
+          })}
+          <button
+            onClick={() => setIsMobileMoreOpen(true)}
+            className={`flex flex-col items-center justify-center gap-0.5 py-2.5 transition cursor-pointer ${
+              navTabs.slice(4).some((t) => t.id === activeTab) ? 'text-amber-400' : 'text-slate-500'
+            }`}
+          >
+            <MoreHorizontal className="w-5 h-5" />
+            <span className="text-[9px] font-bold leading-none">Lainnya</span>
+          </button>
+        </div>
+      </nav>
+
+      {/* Bottom Sheet "Lainnya" — sisa menu yang nggak muat di bottom nav */}
+      <AnimatePresence>
+        {isMobileMoreOpen && (
+          <>
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setIsMobileMoreOpen(false)}
+              className="sm:hidden fixed inset-0 bg-black/60 z-40 no-print"
+            />
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+              className="sm:hidden fixed bottom-0 inset-x-0 z-50 bg-slate-950 border-t border-amber-500/20 rounded-t-3xl p-4 pb-8 no-print"
+            >
+              <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-4" />
+              <div className="grid grid-cols-3 gap-3">
+                {navTabs.slice(4).map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab(tab.id);
+                        setIsMobileMoreOpen(false);
+                      }}
+                      className={`flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl border transition cursor-pointer ${
+                        isActive
+                          ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
+                          : 'bg-white/5 border-white/10 text-slate-300'
+                      }`}
+                    >
+                      <Icon className="w-5 h-5" />
+                      <span className="text-[10px] font-bold text-center leading-tight px-1">{tab.label}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          </>
+        )}
+      </AnimatePresence>
+
       {/* Main Content Body */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 z-10">
+      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 sm:pb-8 z-10">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -833,6 +981,8 @@ export default function App() {
         message="Apakah Anda yakin ingin mengosongkan / mereset seluruh data transaksi dan anggota kas?"
         confirmText="Ya, Reset Data"
       />
+
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
 
     </div>
   );

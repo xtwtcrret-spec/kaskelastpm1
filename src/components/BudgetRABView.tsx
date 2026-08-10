@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { Transaction, BudgetItem } from '../types';
 import { formatRupiah } from '../utils/formatters';
 import { Target, Plus, AlertCircle, CheckCircle2, TrendingUp, Edit3, Trash2, Lock } from 'lucide-react';
+import { ConfirmModal } from './modals/ConfirmModal';
 
 interface BudgetRABViewProps {
   budgets: BudgetItem[];
@@ -21,6 +22,7 @@ export const BudgetRABView: React.FC<BudgetRABViewProps> = ({
   onOpenAdminLogin,
 }) => {
   const [showModal, setShowModal] = useState(false);
+  const [deletingBudgetId, setDeletingBudgetId] = useState<string | null>(null);
   const [category, setCategory] = useState('Konsumsi & Acara');
   const [allocatedAmount, setAllocatedAmount] = useState<number>(1000000);
   const [period, setPeriod] = useState('Agustus 2026');
@@ -136,7 +138,7 @@ export const BudgetRABView: React.FC<BudgetRABViewProps> = ({
                     </span>
                     {isAdmin && (
                       <button
-                        onClick={() => onDeleteBudget(item.id)}
+                        onClick={() => setDeletingBudgetId(item.id)}
                         className="text-slate-400 hover:text-rose-400 p-1 cursor-pointer"
                         title="Hapus Target"
                       >
@@ -252,6 +254,28 @@ export const BudgetRABView: React.FC<BudgetRABViewProps> = ({
           </div>
         </div>
       )}
+
+      {/* Konfirmasi Hapus Target Anggaran */}
+      {deletingBudgetId && (() => {
+        const target = budgets.find((b) => b.id === deletingBudgetId);
+        return (
+          <ConfirmModal
+            isOpen={!!deletingBudgetId}
+            onClose={() => setDeletingBudgetId(null)}
+            onConfirm={() => onDeleteBudget(deletingBudgetId)}
+            title="Hapus Target Anggaran?"
+            message="Target anggaran ini akan dihapus permanen dari RAB. Riwayat pengeluaran yang sudah tercatat di Buku Kas tidak akan ikut terhapus."
+            details={
+              target && (
+                <>
+                  <p><strong className="text-white">Kategori:</strong> {target.category}</p>
+                  <p><strong className="text-white">Plafon:</strong> {formatRupiah(target.allocatedAmount)}</p>
+                </>
+              )
+            }
+          />
+        );
+      })()}
 
     </div>
   );

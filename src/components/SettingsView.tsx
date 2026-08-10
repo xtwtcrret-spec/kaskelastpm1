@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { OrganizationSettings } from '../types';
-import { Settings as SettingsIcon, Save, Download, Upload, RotateCcw, CheckCircle, Lock, ShieldAlert } from 'lucide-react';
+import { Settings as SettingsIcon, Save, Download, Upload, RotateCcw, CheckCircle, Lock, ShieldAlert, Trash2, Plus } from 'lucide-react';
 
 interface SettingsViewProps {
   settings: OrganizationSettings;
@@ -30,7 +30,9 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       onOpenAdminLogin();
       return;
     }
-    onUpdateSettings(formData);
+    // Buang baris admin yang nama/PIN-nya kosong (belum keisi lengkap)
+    const cleanedAdmins = (formData.admins || []).filter((a) => a.name.trim() && a.pin.trim());
+    onUpdateSettings({ ...formData, admins: cleanedAdmins });
     setSaveSuccess(true);
     setTimeout(() => setSaveSuccess(false), 2500);
   };
@@ -152,6 +154,72 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
               )}
             </div>
           </div>
+
+          {/* Multi-Admin Management */}
+          {isAdmin && (
+            <div className="mt-4 pt-4 border-t border-white/5">
+              <label className="block text-slate-300 font-semibold mb-2">
+                Kelola Daftar Admin (Multi-Admin)
+              </label>
+              <p className="text-[11px] text-slate-500 mb-3">
+                Tambahin akun admin lain dengan PIN masing-masing (misal buat wakil bendahara), biar keliatan siapa yang ngelakuin perubahan di Riwayat Perubahan. PIN utama di atas tetap jalan sebagai cadangan.
+              </p>
+
+              <div className="space-y-2">
+                {(formData.admins || []).map((admin, idx) => (
+                  <div key={idx} className="flex items-center gap-2 bg-white/5 border border-white/10 rounded-2xl p-2.5">
+                    <input
+                      type="text"
+                      value={admin.name}
+                      onChange={(e) => {
+                        const updated = [...(formData.admins || [])];
+                        updated[idx] = { ...updated[idx], name: e.target.value };
+                        setFormData({ ...formData, admins: updated });
+                      }}
+                      placeholder="Nama Admin"
+                      className="flex-1 p-2 rounded-xl border border-white/10 bg-white/5 text-white text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <input
+                      type="text"
+                      value={admin.pin}
+                      onChange={(e) => {
+                        const updated = [...(formData.admins || [])];
+                        updated[idx] = { ...updated[idx], pin: e.target.value };
+                        setFormData({ ...formData, admins: updated });
+                      }}
+                      placeholder="PIN"
+                      className="w-24 p-2 rounded-xl border border-white/10 bg-white/5 text-indigo-300 font-mono font-bold text-xs focus:outline-none focus:ring-2 focus:ring-indigo-500"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const updated = (formData.admins || []).filter((_, i) => i !== idx);
+                        setFormData({ ...formData, admins: updated });
+                      }}
+                      className="p-2 text-rose-400 hover:bg-rose-500/10 rounded-xl transition cursor-pointer flex-shrink-0"
+                      title="Hapus admin ini"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                type="button"
+                onClick={() =>
+                  setFormData({
+                    ...formData,
+                    admins: [...(formData.admins || []), { name: '', pin: '' }],
+                  })
+                }
+                className="mt-2.5 flex items-center gap-1.5 text-xs font-semibold text-indigo-300 hover:text-indigo-200 bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/20 px-3 py-2 rounded-xl transition cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Tambah Admin</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Bank & Treasurer Settings */}

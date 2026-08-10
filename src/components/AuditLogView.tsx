@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { AuditLogEntry } from '../types';
 import {
   History,
@@ -12,6 +12,7 @@ import {
   ShieldQuestion,
   Lock,
 } from 'lucide-react';
+import { ConfirmModal } from './modals/ConfirmModal';
 
 interface AuditLogViewProps {
   auditLog: AuditLogEntry[];
@@ -44,17 +45,14 @@ function formatLogTime(iso: string): string {
 }
 
 export const AuditLogView: React.FC<AuditLogViewProps> = ({ auditLog, isAdmin = false, onClearLog, onOpenAdminLogin }) => {
+  const [isClearConfirmOpen, setIsClearConfirmOpen] = useState(false);
+
   const handleClearClick = () => {
     if (!isAdmin) {
       onOpenAdminLogin?.();
       return;
     }
-    const confirmed = window.confirm(
-      'Yakin mau bersihkan seluruh riwayat perubahan? Tindakan ini nggak bisa dibatalkan.'
-    );
-    if (confirmed) {
-      onClearLog?.();
-    }
+    setIsClearConfirmOpen(true);
   };
 
   return (
@@ -119,6 +117,15 @@ export const AuditLogView: React.FC<AuditLogViewProps> = ({ auditLog, isAdmin = 
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        isOpen={isClearConfirmOpen}
+        onClose={() => setIsClearConfirmOpen(false)}
+        onConfirm={() => onClearLog?.()}
+        title="Bersihkan Seluruh Riwayat?"
+        message="Semua catatan perubahan (tambah/edit/hapus/verifikasi) akan dihapus permanen dan nggak bisa dikembalikan. Setelah dibersihkan, akan tetap dicatat 1 entri baru sebagai jejak kapan & oleh siapa log ini dikosongkan."
+        confirmText="Ya, Bersihkan"
+      />
     </div>
   );
 };

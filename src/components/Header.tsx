@@ -12,7 +12,9 @@ import {
   CreditCard,
   Cog,
   Wrench,
-  Cpu
+  Cpu,
+  Bell,
+  Clock
 } from 'lucide-react';
 import { motion } from 'motion/react';
 import { LiveClock } from './LiveClock';
@@ -21,6 +23,10 @@ interface HeaderProps {
   settings: OrganizationSettings;
   totalBalance: number;
   isAdmin: boolean;
+  currentAdminName?: string;
+  pendingCount?: number;
+  pendingAmount?: number;
+  onFilterPending?: () => void;
   onOpenAdminLogin: () => void;
   onLogoutAdmin: () => void;
   onOpenStudentPay: () => void;
@@ -34,6 +40,10 @@ export const Header: React.FC<HeaderProps> = ({
   settings,
   totalBalance,
   isAdmin,
+  currentAdminName,
+  pendingCount = 0,
+  pendingAmount = 0,
+  onFilterPending,
   onOpenAdminLogin,
   onLogoutAdmin,
   onOpenStudentPay,
@@ -78,8 +88,9 @@ export const Header: React.FC<HeaderProps> = ({
 
                 {/* Mode Role Pill */}
                 {isAdmin ? (
-                  <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2 py-0.5 rounded-full flex-shrink-0 shadow-sm">
-                    <ShieldCheck className="w-3 h-3 text-amber-400" /> Mode Admin
+                  <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/40 px-2.5 py-0.5 rounded-full flex-shrink-0 shadow-sm">
+                    <ShieldCheck className="w-3 h-3 text-amber-400" />
+                    <span>{currentAdminName ? currentAdminName : 'Mode Admin'}</span>
                   </span>
                 ) : (
                   <span className="inline-flex items-center gap-1 text-[10px] font-semibold bg-cyan-500/20 text-cyan-300 border border-cyan-500/30 px-2 py-0.5 rounded-full flex-shrink-0">
@@ -97,6 +108,33 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="flex flex-wrap items-center justify-between md:justify-end w-full md:w-auto gap-2.5">
 
             <LiveClock />
+
+            {/* Pending Transactions Badge Notification */}
+            {pendingCount > 0 && (
+              <motion.button
+                whileHover={{ scale: 1.04 }}
+                whileTap={{ scale: 0.96 }}
+                onClick={onFilterPending}
+                className="bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/50 text-amber-300 px-3 py-1.5 rounded-2xl flex items-center gap-2 shadow-lg shadow-amber-500/10 cursor-pointer animate-pulse"
+                title="Klik untuk lihat & verifikasi transaksi pending"
+              >
+                <div className="relative">
+                  <Bell className="w-4 h-4 text-amber-400" />
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 border border-slate-950 animate-ping" />
+                  <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-rose-500 border border-slate-950" />
+                </div>
+                <div className="text-left">
+                  <div className="text-[10px] font-black uppercase text-amber-400 flex items-center gap-1">
+                    <span>{pendingCount} Setoran Pending</span>
+                  </div>
+                  {pendingAmount > 0 && (
+                    <div className="text-[10px] font-mono text-amber-200">
+                      +{formatRupiah(pendingAmount)}
+                    </div>
+                  )}
+                </div>
+              </motion.button>
+            )}
             
             {/* Balance Gauge Card */}
             <motion.div 

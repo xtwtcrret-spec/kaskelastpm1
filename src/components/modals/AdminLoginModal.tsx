@@ -27,7 +27,7 @@ export const AdminLoginModal: React.FC<AdminLoginModalProps> = ({
     const trimmed = pinInput.trim();
 
     // Cek dulu ke daftar multi-admin (kalau ada)
-    const matchedAdmin = admins.find((a) => a.pin === trimmed);
+    const matchedAdmin = admins.find((a) => a.pin.trim() === trimmed);
     if (matchedAdmin) {
       setErrorMsg('');
       setPinInput('');

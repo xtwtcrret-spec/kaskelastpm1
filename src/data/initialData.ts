@@ -11,6 +11,7 @@ export const initialSettings: OrganizationSettings = {
   treasurerName: "Bendahara 12 TPM 1",
   treasurerPhone: "6289654783556",
   adminPin: "262009",
+  admins: [],
 };
 
 export const initialMembers: Member[] = [];

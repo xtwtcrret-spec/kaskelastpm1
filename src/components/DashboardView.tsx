@@ -147,7 +147,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   // Cash Health Status
   let healthBadge = { text: 'Kas Permesinan Sehat (Aman)', color: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' };
   if (totalBalance < 500000 && totalBalance > 0) {
-    healthBadge = { text: 'Saldo Menipis (Perlu Topup)', color: 'bg-amber-500/20 text-amber-300 border-amber-500/30' };
+    healthBadge = { text: 'Saldo Menipis (Perlu Topup)', color: 'bg-blue-500/20 text-blue-300 border-blue-500/30' };
   } else if (totalBalance <= 0) {
     healthBadge = { text: 'Kas Defisit / Perlu Kalibrasi', color: 'bg-rose-500/20 text-rose-300 border-rose-500/30' };
   }
@@ -164,9 +164,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     <div className="space-y-6 pb-12">
       
       {/* Mechanical Engineering Banner & Quick AI Action */}
-      <div className="bg-slate-900/90 backdrop-blur-2xl text-white rounded-3xl p-5 sm:p-6 shadow-2xl border border-amber-500/30 relative overflow-hidden metallic-card-amber">
+      <div className="bg-slate-900/90 backdrop-blur-2xl text-white rounded-3xl p-5 sm:p-6 shadow-2xl border border-blue-500/30 relative overflow-hidden glass-card-blue">
         <div className="absolute right-[-20px] top-[-20px] opacity-10 pointer-events-none">
-          <Cog className="w-64 h-64 text-amber-400 animate-spin-gear" />
+          <Cog className="w-64 h-64 text-blue-400 animate-spin-gear" />
         </div>
         
         <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4 relative z-10">
@@ -175,7 +175,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <span className={`text-[11px] font-mono-tech font-bold px-2.5 py-0.5 rounded-full border ${healthBadge.color}`}>
                 ● {healthBadge.text}
               </span>
-              <span className="text-[11px] font-mono-tech text-amber-400/90 flex items-center gap-1">
+              <span className="text-[11px] font-mono-tech text-blue-400/90 flex items-center gap-1">
                 <Cpu className="w-3.5 h-3.5" /> System Presisi • {transactions.length} Transaksi
               </span>
             </div>
@@ -183,7 +183,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <span>Konsol Monitoring Kas {settings.name}</span>
             </h2>
             <p className="text-xs sm:text-sm text-slate-300 leading-relaxed">
-              Pencatatan kas transparan & terkalibrasi presisi untuk <strong className="text-amber-300">{settings.name}</strong>. Dilengkapi AI Cash Advisor & kuitansi digital.
+              Pencatatan kas transparan & terkalibrasi presisi untuk <strong className="text-blue-300">{settings.name}</strong>. Dilengkapi AI Cash Advisor & kuitansi digital.
             </p>
           </div>
 
@@ -203,7 +203,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               whileHover={{ scale: 1.03 }}
               whileTap={{ scale: 0.97 }}
               onClick={() => onNavigateToTab('ai-audit')}
-              className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 font-black text-xs px-3.5 py-2.5 rounded-2xl shadow-lg shadow-amber-500/20 transition flex items-center justify-center gap-1.5 cursor-pointer border border-amber-300/40"
+              className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-400 hover:to-blue-500 text-slate-950 font-black text-xs px-3.5 py-2.5 rounded-2xl shadow-lg shadow-blue-500/20 transition flex items-center justify-center gap-1.5 cursor-pointer border border-blue-300/40"
             >
               <Sparkles className="w-4 h-4 text-slate-950" />
               <span>Audit AI Gemini</span>
@@ -214,9 +214,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
       {/* Pending Transactions Alert Banner */}
       {pendingTransactions.length > 0 && (
-        <div className="bg-amber-500/15 border border-amber-500/30 text-amber-200 p-4 rounded-3xl text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xl animate-fade-in">
+        <div className="bg-blue-500/15 border border-blue-500/30 text-blue-200 p-4 rounded-3xl text-xs flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xl animate-fade-in">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 rounded-2xl bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center flex-shrink-0">
               <Clock className="w-5 h-5 animate-pulse" />
             </div>
             <div>
@@ -233,7 +233,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           <button
             onClick={() => onNavigateToTab('transactions')}
-            className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-extrabold px-4 py-2.5 rounded-xl text-xs flex-shrink-0 cursor-pointer transition shadow-lg shadow-amber-500/20 active:scale-95 flex items-center gap-1.5"
+            className="bg-blue-500 hover:bg-blue-400 text-slate-950 font-extrabold px-4 py-2.5 rounded-xl text-xs flex-shrink-0 cursor-pointer transition shadow-lg shadow-blue-500/20 active:scale-95 flex items-center gap-1.5"
           >
             <span>{isAdmin ? 'Verifikasi & Konfirmasi Sekarang →' : 'Buka Buku Kas →'}</span>
           </button>
@@ -266,7 +266,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               Terkonfirmasi Admin
             </span>
             {pendingIncomeAmount > 0 && (
-              <span className="text-[10px] text-amber-300 font-bold bg-amber-500/20 px-2 py-0.5 rounded-full border border-amber-500/30">
+              <span className="text-[10px] text-blue-300 font-bold bg-blue-500/20 px-2 py-0.5 rounded-full border border-blue-500/30">
                 ⏳ +{formatRupiah(pendingIncomeAmount)} Pending
               </span>
             )}
@@ -292,7 +292,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
           <p className="text-xs text-slate-400 mt-2 truncate">
             {pendingIncomeAmount > 0 ? (
-              <span className="text-amber-300 font-semibold">⏳ {formatRupiah(pendingIncomeAmount)} belum dikonfirmasi</span>
+              <span className="text-blue-300 font-semibold">⏳ {formatRupiah(pendingIncomeAmount)} belum dikonfirmasi</span>
             ) : (
               'Sudah diverifikasi penuh'
             )}
@@ -331,16 +331,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400 truncate">
               Belum Lunas ({unpaidMembers.length} Anggota)
             </span>
-            <div className="w-9 h-9 rounded-2xl bg-amber-500/20 text-amber-400 border border-amber-500/30 flex items-center justify-center flex-shrink-0">
+            <div className="w-9 h-9 rounded-2xl bg-blue-500/20 text-blue-400 border border-blue-500/30 flex items-center justify-center flex-shrink-0">
               <AlertCircle className="w-5 h-5" />
             </div>
           </div>
-          <div className="text-xl sm:text-2xl font-black text-amber-400 tracking-tight break-words">
+          <div className="text-xl sm:text-2xl font-black text-blue-400 tracking-tight break-words">
             {formatRupiah(totalUnpaidAmount)}
           </div>
           <button
             onClick={() => onNavigateToTab('members')}
-            className="text-xs text-amber-300 hover:underline font-semibold mt-2 inline-flex items-center gap-1 cursor-pointer"
+            className="text-xs text-blue-300 hover:underline font-semibold mt-2 inline-flex items-center gap-1 cursor-pointer"
           >
             Lihat & tagih WA &rarr;
           </button>
@@ -380,7 +380,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <div className="w-full bg-slate-950/80 h-2.5 rounded-full overflow-hidden border border-white/5">
                 <div
                   className={`h-full rounded-full transition-all duration-500 ${
-                    duesProgressPct >= 80 ? 'bg-emerald-500' : duesProgressPct >= 40 ? 'bg-amber-400' : 'bg-rose-500'
+                    duesProgressPct >= 80 ? 'bg-emerald-500' : duesProgressPct >= 40 ? 'bg-blue-400' : 'bg-rose-500'
                   }`}
                   style={{ width: `${duesProgressPct}%` }}
                 />
@@ -512,8 +512,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-xs">
           <div className="bg-white/5 p-4 rounded-2xl border border-white/10 space-y-1.5">
-            <div className="font-bold text-amber-300 flex items-center gap-1.5">
-              <Clock className="w-4 h-4 text-amber-400" />
+            <div className="font-bold text-blue-300 flex items-center gap-1.5">
+              <Clock className="w-4 h-4 text-blue-400" />
               1. Isolasi Setoran Pending
             </div>
             <p className="text-slate-300 text-[11px] leading-relaxed">
@@ -637,10 +637,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div>
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Users className="w-5 h-5 text-amber-400" />
+                <Users className="w-5 h-5 text-blue-400" />
                 Tunggakan Iuran
               </h3>
-              <span className="text-xs font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30 px-2.5 py-0.5 rounded-full">
+              <span className="text-xs font-bold bg-blue-500/20 text-blue-300 border border-blue-500/30 px-2.5 py-0.5 rounded-full">
                 {unpaidMembers.length} Orang
               </span>
             </div>
@@ -653,7 +653,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 unpaidMembers.map((member) => (
                   <div
                     key={member.id}
-                    className="flex items-center justify-between p-3 rounded-2xl border border-white/5 bg-white/5 hover:border-amber-500/30 hover:bg-white/10 transition-all"
+                    className="flex items-center justify-between p-3 rounded-2xl border border-white/5 bg-white/5 hover:border-blue-500/30 hover:bg-white/10 transition-all"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <img

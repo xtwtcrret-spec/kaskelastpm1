@@ -14,6 +14,7 @@ import {
   initialSettings 
 } from './data/initialData';
 import { supabase, KAS_ROW_ID } from './lib/supabaseClient';
+import { formatRupiah } from './utils/formatters';
 import { computeMemberDuesLedger } from './utils/dues';
 import { ToastContainer, ToastItem } from './components/ToastContainer';
 
@@ -30,7 +31,7 @@ const generateId = (prefix: string): string => {
 };
 
 
-import { Header } from './components/Header';
+import { Sidebar } from './components/Sidebar';
 import { DashboardView } from './components/DashboardView';
 import { TransactionsView } from './components/TransactionsView';
 import { MembersDuesView } from './components/MembersDuesView';
@@ -57,8 +58,8 @@ import {
   Settings as SettingsIcon,
   Sparkles,
   ShieldCheck,
+  Menu,
   History,
-  MoreHorizontal
 } from 'lucide-react';
 
 export default function App() {
@@ -187,7 +188,7 @@ export default function App() {
 
 
   const [activeTab, setActiveTab] = useState<string>('dashboard');
-  const [isMobileMoreOpen, setIsMobileMoreOpen] = useState(false);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
 
   // RBAC Role State
   const [isAdmin, setIsAdmin] = useState(false);
@@ -604,165 +605,49 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#080c14] text-slate-100 font-sans flex flex-col antialiased relative overflow-x-hidden selection:bg-amber-500 selection:text-slate-950">
-      
-      {/* Background Blueprint Grid & Ambient Glowing Machine Orbs */}
-      <div className="fixed inset-0 bg-blueprint-grid opacity-25 pointer-events-none z-0" />
-      <div className="fixed top-[-10%] left-[-10%] w-[50%] h-[50%] bg-amber-500/10 rounded-full blur-[140px] pointer-events-none z-0" />
-      <div className="fixed bottom-[-5%] right-[-5%] w-[45%] h-[45%] bg-cyan-600/10 rounded-full blur-[120px] pointer-events-none z-0" />
-      <div className="fixed top-[40%] right-[15%] w-[35%] h-[35%] bg-amber-600/5 rounded-full blur-[130px] pointer-events-none z-0" />
+    <div className="min-h-screen bg-[#080b1f] text-slate-100 font-sans flex antialiased relative overflow-x-hidden selection:bg-blue-500 selection:text-white">
 
-      {/* Header Bar */}
-      <Header
+      {/* Background Ambient Gradient Orbs — tema navy/blue modern */}
+      <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(30,58,138,0.25),_transparent_60%)] pointer-events-none z-0" />
+      <div className="fixed top-[-10%] right-[-10%] w-[50%] h-[50%] bg-blue-600/10 rounded-full blur-[140px] pointer-events-none z-0" />
+      <div className="fixed bottom-[-5%] left-[20%] w-[45%] h-[45%] bg-indigo-600/10 rounded-full blur-[120px] pointer-events-none z-0" />
+      <div className="fixed top-[40%] left-[-10%] w-[35%] h-[35%] bg-cyan-600/5 rounded-full blur-[130px] pointer-events-none z-0" />
+
+      {/* Sidebar Navigation */}
+      <Sidebar
         settings={settings}
         totalBalance={totalBalance}
         isAdmin={isAdmin}
+        navTabs={navTabs}
+        activeTab={activeTab}
+        setActiveTab={setActiveTab}
         onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
         onLogoutAdmin={() => { setIsAdmin(false); setLoggedInAdminName(''); showToast('Berhasil logout', 'info'); }}
         onOpenStudentPay={() => setIsStudentPayOpen(true)}
-        onOpenAddTx={() => {
-          setEditingTx(null);
-          setIsTxModalOpen(true);
-        }}
-        onOpenSmartNote={() => setActiveTab('ai-audit')}
-        onOpenAudit={() => setActiveTab('ai-audit')}
         onOpenQRIS={() => setActiveTab('payment')}
+        isMobileOpen={isMobileSidebarOpen}
+        onCloseMobile={() => setIsMobileSidebarOpen(false)}
       />
 
-      {/* Navigation Sub-Header - Mechanical Control Panel (disembunyikan di HP, diganti bottom nav) */}
-      <nav className="hidden sm:block bg-slate-950/80 backdrop-blur-2xl border-b border-amber-500/20 sticky top-[77px] z-20 shadow-2xl">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center gap-1.5 overflow-x-auto py-2.5 scrollbar-none">
-            {navTabs.map((tab) => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
-                  className={`relative flex items-center gap-2 px-4 py-2.5 rounded-2xl text-xs font-bold transition flex-shrink-0 cursor-pointer ${
-                    isActive
-                      ? 'text-amber-300 font-tech uppercase tracking-wide'
-                      : 'text-slate-400 hover:text-white hover:bg-white/5 border border-transparent'
-                  }`}
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="activeTabPill"
-                      className="absolute inset-0 bg-amber-500/20 border border-amber-500/40 rounded-2xl shadow-lg shadow-amber-500/10"
-                      transition={{ type: "spring", stiffness: 380, damping: 28 }}
-                    />
-                  )}
-                  <Icon className={`w-4 h-4 relative z-10 ${isActive ? 'text-amber-400' : 'text-slate-400'}`} />
-                  <span className="relative z-10">{tab.label}</span>
-                  {tab.badge && (
-                    <span className="relative z-10 text-[10px] bg-amber-500/30 text-amber-200 font-mono-tech font-extrabold px-2 py-0.5 rounded-md border border-amber-500/40">
-                      {tab.badge}
-                    </span>
-                  )}
-                  {!!tab.pendingCount && (
-                    <span
-                      className="relative z-10 text-[10px] bg-rose-500 text-white font-mono-tech font-extrabold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1"
-                      title={`${tab.pendingCount} transaksi menunggu verifikasi`}
-                    >
-                      {tab.pendingCount > 99 ? '99+' : tab.pendingCount}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </div>
+      {/* Mobile Top Bar (hamburger + saldo ringkas) */}
+      <div className="no-print lg:hidden sticky top-0 z-20 bg-[#0b1230]/90 backdrop-blur-2xl border-b border-white/10 px-4 py-3 flex items-center justify-between">
+        <button
+          onClick={() => setIsMobileSidebarOpen(true)}
+          className="w-9 h-9 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center text-white cursor-pointer"
+        >
+          <Menu className="w-4.5 h-4.5" />
+        </button>
+        <div className="text-right">
+          <p className="text-[9px] uppercase tracking-widest text-blue-300/80 font-bold">Saldo Kas</p>
+          <p className={`text-sm font-black ${totalBalance >= 0 ? 'text-white' : 'text-rose-400'}`}>
+            {formatRupiah(totalBalance)}
+          </p>
         </div>
-      </nav>
-
-      {/* Bottom Navigation Bar — khusus tampilan HP, 4 menu utama + "Lainnya" */}
-      <nav className="no-print sm:hidden fixed bottom-0 inset-x-0 z-30 bg-slate-950/95 backdrop-blur-2xl border-t border-amber-500/20 shadow-2xl">
-        <div className="grid grid-cols-5">
-          {navTabs.slice(0, 4).map((tab) => {
-            const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`relative flex flex-col items-center justify-center gap-0.5 py-2.5 transition cursor-pointer ${
-                  isActive ? 'text-amber-400' : 'text-slate-500'
-                }`}
-              >
-                <span className="relative">
-                  <Icon className="w-5 h-5" />
-                  {!!tab.pendingCount && (
-                    <span className="absolute -top-1.5 -right-2 text-[9px] bg-rose-500 text-white font-mono-tech font-extrabold min-w-[15px] h-[15px] flex items-center justify-center rounded-full px-0.5">
-                      {tab.pendingCount > 9 ? '9+' : tab.pendingCount}
-                    </span>
-                  )}
-                </span>
-                <span className="text-[9px] font-bold leading-none text-center px-0.5">{tab.label.split(' ')[0]}</span>
-              </button>
-            );
-          })}
-          <button
-            onClick={() => setIsMobileMoreOpen(true)}
-            className={`flex flex-col items-center justify-center gap-0.5 py-2.5 transition cursor-pointer ${
-              navTabs.slice(4).some((t) => t.id === activeTab) ? 'text-amber-400' : 'text-slate-500'
-            }`}
-          >
-            <MoreHorizontal className="w-5 h-5" />
-            <span className="text-[9px] font-bold leading-none">Lainnya</span>
-          </button>
-        </div>
-      </nav>
-
-      {/* Bottom Sheet "Lainnya" — sisa menu yang nggak muat di bottom nav */}
-      <AnimatePresence>
-        {isMobileMoreOpen && (
-          <>
-            <motion.div
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              onClick={() => setIsMobileMoreOpen(false)}
-              className="sm:hidden fixed inset-0 bg-black/60 z-40 no-print"
-            />
-            <motion.div
-              initial={{ y: '100%' }}
-              animate={{ y: 0 }}
-              exit={{ y: '100%' }}
-              transition={{ type: 'spring', stiffness: 320, damping: 32 }}
-              className="sm:hidden fixed bottom-0 inset-x-0 z-50 bg-slate-950 border-t border-amber-500/20 rounded-t-3xl p-4 pb-8 no-print"
-            >
-              <div className="w-10 h-1 rounded-full bg-white/20 mx-auto mb-4" />
-              <div className="grid grid-cols-3 gap-3">
-                {navTabs.slice(4).map((tab) => {
-                  const Icon = tab.icon;
-                  const isActive = activeTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => {
-                        setActiveTab(tab.id);
-                        setIsMobileMoreOpen(false);
-                      }}
-                      className={`flex flex-col items-center justify-center gap-1.5 py-4 rounded-2xl border transition cursor-pointer ${
-                        isActive
-                          ? 'bg-amber-500/15 border-amber-500/40 text-amber-300'
-                          : 'bg-white/5 border-white/10 text-slate-300'
-                      }`}
-                    >
-                      <Icon className="w-5 h-5" />
-                      <span className="text-[10px] font-bold text-center leading-tight px-1">{tab.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
-            </motion.div>
-          </>
-        )}
-      </AnimatePresence>
+      </div>
 
       {/* Main Content Body */}
-      <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 sm:pb-8 z-10">
+      <main className="flex-1 min-w-0 lg:pl-72 w-full py-8 z-10">
+        <div className="max-w-6xl w-full mx-auto px-4 sm:px-6 lg:px-8">
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}
@@ -883,14 +768,15 @@ export default function App() {
             )}
           </motion.div>
         </AnimatePresence>
+        </div>
       </main>
 
       {/* App Footer */}
-      <footer className="bg-white/5 backdrop-blur-xl border-t border-white/10 py-6 text-center text-xs text-slate-400 z-10">
-        <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
+      <footer className="lg:ml-72 bg-white/5 backdrop-blur-xl border-t border-white/10 py-6 text-center text-xs text-slate-400 z-10">
+        <div className="max-w-6xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-3">
           <div className="flex items-center gap-2">
-            <ShieldCheck className="w-4 h-4 text-indigo-400" />
-            <span className="font-bold text-slate-200">KasKita</span> • Transparansi Kas Berbasis Frosted Glass & AI
+            <ShieldCheck className="w-4 h-4 text-blue-400" />
+            <span className="font-bold text-slate-200">{settings.name}</span> • Transparansi Kas Berbasis Frosted Glass & AI
           </div>
           <div className="text-slate-500">
             Dikelola secara otomatis & terverifikasi untuk {settings.name}

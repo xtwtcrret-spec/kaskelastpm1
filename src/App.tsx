@@ -605,7 +605,7 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-[#080b1f] text-slate-100 font-sans flex antialiased relative overflow-x-hidden selection:bg-blue-500 selection:text-white">
+    <div className="min-h-screen bg-[#080b1f] text-slate-100 font-sans antialiased relative overflow-x-hidden selection:bg-blue-500 selection:text-white">
 
       {/* Background Ambient Gradient Orbs — tema navy/blue modern */}
       <div className="fixed inset-0 bg-[radial-gradient(ellipse_at_top,_rgba(30,58,138,0.25),_transparent_60%)] pointer-events-none z-0" />

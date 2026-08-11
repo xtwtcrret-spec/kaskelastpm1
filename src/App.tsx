@@ -542,7 +542,7 @@ export default function App() {
 
   if (isLoadingData) {
     return (
-      <div className="min-h-screen bg-[#080c14] text-slate-100 font-sans">
+      <div className="min-h-screen bg-[#080c14] text-slate-100 font-sans overflow-x-hidden">
         {/* Skeleton Header */}
         <div className="bg-slate-950/80 border-b border-white/5 px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between max-w-7xl mx-auto">

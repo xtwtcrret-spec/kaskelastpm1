@@ -85,7 +85,7 @@ export default function App() {
     const entry: AuditLogEntry = {
       id: generateId('log'),
       timestamp: new Date().toISOString(),
-      actor: isAdmin ? (settings.treasurerName || 'Admin Bendahara') : 'Sistem',
+      actor: isAdmin ? (loggedInAdminName || settings.treasurerName || 'Admin Bendahara') : 'Sistem',
       action,
       detail,
     };
@@ -179,6 +179,7 @@ export default function App() {
         .eq('id', KAS_ROW_ID);
       if (error) {
         console.error('Gagal menyimpan data kas ke Supabase:', error);
+        showToast('Gagal menyimpan perubahan ke database! Cek koneksi internet & coba lagi.', 'error');
       }
     }, 400); // debounce biar nggak spam request tiap ketikan
     return () => clearTimeout(timeout);
@@ -190,6 +191,7 @@ export default function App() {
 
   // RBAC Role State
   const [isAdmin, setIsAdmin] = useState(false);
+  const [loggedInAdminName, setLoggedInAdminName] = useState<string>('');
   const [isAdminLoginOpen, setIsAdminLoginOpen] = useState(false);
   const [isStudentPayOpen, setIsStudentPayOpen] = useState(false);
 
@@ -527,9 +529,10 @@ export default function App() {
   };
 
   // Navigation Links
+  const pendingTxCount = transactions.filter((t) => !t.verified).length;
   const navTabs = [
     { id: 'dashboard', label: 'Dashboard Utama', icon: LayoutDashboard },
-    { id: 'transactions', label: 'Buku Kas & Transaksi', icon: BookOpen },
+    { id: 'transactions', label: 'Buku Kas & Transaksi', icon: BookOpen, pendingCount: pendingTxCount },
     { id: 'members', label: 'Iuran Anggota', icon: Users },
     { id: 'ai-audit', label: 'AI Audit & Smart Parser', icon: Bot, badge: 'Gemini' },
     { id: 'rab', label: 'RAB Anggaran', icon: Target },
@@ -539,7 +542,7 @@ export default function App() {
 
   if (isLoadingData) {
     return (
-      <div className="min-h-screen bg-[#080c14] text-slate-100 font-sans">
+      <div className="min-h-screen bg-[#080c14] text-slate-100 font-sans overflow-x-hidden">
         {/* Skeleton Header */}
         <div className="bg-slate-950/80 border-b border-white/5 px-4 sm:px-6 py-4">
           <div className="flex items-center justify-between max-w-7xl mx-auto">
@@ -615,7 +618,7 @@ export default function App() {
         totalBalance={totalBalance}
         isAdmin={isAdmin}
         onOpenAdminLogin={() => setIsAdminLoginOpen(true)}
-        onLogoutAdmin={() => setIsAdmin(false)}
+        onLogoutAdmin={() => { setIsAdmin(false); setLoggedInAdminName(''); showToast('Berhasil logout', 'info'); }}
         onOpenStudentPay={() => setIsStudentPayOpen(true)}
         onOpenAddTx={() => {
           setEditingTx(null);
@@ -658,6 +661,14 @@ export default function App() {
                       {tab.badge}
                     </span>
                   )}
+                  {!!tab.pendingCount && (
+                    <span
+                      className="relative z-10 text-[10px] bg-rose-500 text-white font-mono-tech font-extrabold min-w-[18px] h-[18px] flex items-center justify-center rounded-full px-1"
+                      title={`${tab.pendingCount} transaksi menunggu verifikasi`}
+                    >
+                      {tab.pendingCount > 99 ? '99+' : tab.pendingCount}
+                    </span>
+                  )}
                 </button>
               );
             })}
@@ -675,11 +686,18 @@ export default function App() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex flex-col items-center justify-center gap-0.5 py-2.5 transition cursor-pointer ${
+                className={`relative flex flex-col items-center justify-center gap-0.5 py-2.5 transition cursor-pointer ${
                   isActive ? 'text-amber-400' : 'text-slate-500'
                 }`}
               >
-                <Icon className="w-5 h-5" />
+                <span className="relative">
+                  <Icon className="w-5 h-5" />
+                  {!!tab.pendingCount && (
+                    <span className="absolute -top-1.5 -right-2 text-[9px] bg-rose-500 text-white font-mono-tech font-extrabold min-w-[15px] h-[15px] flex items-center justify-center rounded-full px-0.5">
+                      {tab.pendingCount > 9 ? '9+' : tab.pendingCount}
+                    </span>
+                  )}
+                </span>
                 <span className="text-[9px] font-bold leading-none text-center px-0.5">{tab.label.split(' ')[0]}</span>
               </button>
             );
@@ -884,8 +902,13 @@ export default function App() {
       <AdminLoginModal
         isOpen={isAdminLoginOpen}
         onClose={() => setIsAdminLoginOpen(false)}
-        onLoginSuccess={() => setIsAdmin(true)}
+        onLoginSuccess={(adminName) => {
+          setIsAdmin(true);
+          setLoggedInAdminName(adminName);
+          showToast(`Login berhasil sebagai ${adminName}`, 'success');
+        }}
         currentPin={settings.adminPin || '262009'}
+        admins={settings.admins || []}
       />
 
       <StudentPaymentModal

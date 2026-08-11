@@ -125,7 +125,7 @@ export const PaymentPortalView: React.FC<PaymentPortalViewProps> = ({ settings }
                 <label className="block text-xs font-semibold text-slate-300 mb-1.5">
                   Jumlah Bulan Pembayaran
                 </label>
-                <div className="grid grid-cols-4 gap-2">
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[1, 3, 6, 12].map((num) => (
                     <button
                       key={num}

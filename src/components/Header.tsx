@@ -130,7 +130,8 @@ export const Header: React.FC<HeaderProps> = ({
                 className="bg-gradient-to-r from-amber-500 to-amber-600 hover:from-amber-400 hover:to-amber-500 text-slate-950 text-xs font-black px-3.5 py-2.5 rounded-2xl shadow-lg shadow-amber-500/20 transition flex items-center gap-1.5 cursor-pointer border border-amber-300/40"
               >
                 <CreditCard className="w-4 h-4" />
-                <span>Setor / Bayar Kas</span>
+                <span className="hidden sm:inline">Setor / Bayar Kas</span>
+                <span className="sm:hidden">Bayar</span>
               </motion.button>
 
               {isAdmin ? (
